@@ -1,0 +1,15 @@
+{
+  "name": "Doce Acaso RS - PDV",
+  "short_name": "Doce Acaso RS",
+  "description": "PDV com controle de estoque, clientes e tabela de preços da Doce Acaso RS",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FFF8F1",
+  "theme_color": "#E85D75",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
