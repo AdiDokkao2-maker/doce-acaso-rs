@@ -16,7 +16,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -43,132 +42,318 @@
 <body>
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useMemo, useCallback } = React;
+<script>
+window.addEventListener("error", function (e) {
+  var root = document.getElementById("root");
+  if (root && root.childElementCount === 0) {
+    root.innerHTML =
+      '<div style="padding:32px;font-family:sans-serif;max-width:480px;margin:40px auto;text-align:center;color:#3A2B33">' +
+      '<div style="font-size:40px;margin-bottom:12px">🍪</div>' +
+      '<h2 style="margin:0 0 8px">Não foi possível carregar o app</h2>' +
+      '<p style="color:#8B7A85;font-size:14px;line-height:1.5">Verifique sua conexão com a internet e tente recarregar a página. Se o problema continuar, os arquivos podem não ter sido enviados corretamente para a hospedagem.</p>' +
+      '<p style="color:#B9ABB4;font-size:12px;margin-top:16px">Detalhe técnico: ' + (e.message || 'erro desconhecido') + '</p>' +
+      '</div>';
+  }
+});
+</script>
+<script>
+const {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback
+} = React;
 
 /* ---------------------------------------------------------------
    Doce Acaso RS — PDV (Ponto de Venda) — versão PWA (offline, Android)
 ------------------------------------------------------------------ */
 
 const COLORS = {
-  bg: "#FFF8F1", card: "#FFFFFF", border: "#F0DFCF", borderSoft: "#F5E9DC",
-  text: "#3A2B33", textMuted: "#8B7A85",
-  primary: "#E85D75", primaryDark: "#C94A61", primarySoft: "#FDE7EB",
-  secondary: "#F2994A", secondarySoft: "#FCEBD9",
-  mint: "#4FA57E", mintSoft: "#E4F5EC", warn: "#D9534F", warnSoft: "#FBEAE9",
+  bg: "#FFF8F1",
+  card: "#FFFFFF",
+  border: "#F0DFCF",
+  borderSoft: "#F5E9DC",
+  text: "#3A2B33",
+  textMuted: "#8B7A85",
+  primary: "#E85D75",
+  primaryDark: "#C94A61",
+  primarySoft: "#FDE7EB",
+  secondary: "#F2994A",
+  secondarySoft: "#FCEBD9",
+  mint: "#4FA57E",
+  mintSoft: "#E4F5EC",
+  warn: "#D9534F",
+  warnSoft: "#FBEAE9"
 };
-
 const ICON = {
-  cart: "🛒", box: "📦", users: "👥", tag: "🏷️", sheet: "📊",
-  cookie: "🍪", plus: "＋", minus: "－", trash: "🗑", search: "🔎",
-  close: "✕", edit: "✎", warn: "⚠", check: "✓", store: "🏪",
+  cart: "🛒",
+  box: "📦",
+  users: "👥",
+  tag: "🏷️",
+  sheet: "📊",
+  cookie: "🍪",
+  plus: "＋",
+  minus: "－",
+  trash: "🗑",
+  search: "🔎",
+  close: "✕",
+  edit: "✎",
+  warn: "⚠",
+  check: "✓",
+  store: "🏪"
 };
-
-const money = (v) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const money = v => (Number(v) || 0).toLocaleString("pt-BR", {
+  style: "currency",
+  currency: "BRL"
+});
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
-
-const SEED_PRODUCTS = [
-  { id: uid(), code: "BRI-001", name: "Brigadeiro Gourmet", category: "Doces", stock: 48, minStock: 15, costPrice: 0.9, priceVarejo: 3.5, priceAtacado: 2.6 },
-  { id: uid(), code: "BEI-002", name: "Beijinho", category: "Doces", stock: 40, minStock: 15, costPrice: 0.85, priceVarejo: 3.2, priceAtacado: 2.4 },
-  { id: uid(), code: "COO-003", name: "Cookie Recheado", category: "Assados", stock: 22, minStock: 10, costPrice: 2.1, priceVarejo: 7.5, priceAtacado: 5.8 },
-  { id: uid(), code: "BRO-004", name: "Brownie de Chocolate", category: "Assados", stock: 8, minStock: 10, costPrice: 2.8, priceVarejo: 9.0, priceAtacado: 7.0 },
-  { id: uid(), code: "PDM-005", name: "Pão de Mel", category: "Doces", stock: 30, minStock: 12, costPrice: 1.6, priceVarejo: 6.0, priceAtacado: 4.5 },
-  { id: uid(), code: "TRU-006", name: "Trufa de Chocolate", category: "Doces", stock: 5, minStock: 15, costPrice: 1.4, priceVarejo: 5.5, priceAtacado: 4.2 },
-];
-
+const SEED_PRODUCTS = [{
+  id: uid(),
+  code: "BRI-001",
+  name: "Brigadeiro Gourmet",
+  category: "Doces",
+  stock: 48,
+  minStock: 15,
+  costPrice: 0.9,
+  priceVarejo: 3.5,
+  priceAtacado: 2.6
+}, {
+  id: uid(),
+  code: "BEI-002",
+  name: "Beijinho",
+  category: "Doces",
+  stock: 40,
+  minStock: 15,
+  costPrice: 0.85,
+  priceVarejo: 3.2,
+  priceAtacado: 2.4
+}, {
+  id: uid(),
+  code: "COO-003",
+  name: "Cookie Recheado",
+  category: "Assados",
+  stock: 22,
+  minStock: 10,
+  costPrice: 2.1,
+  priceVarejo: 7.5,
+  priceAtacado: 5.8
+}, {
+  id: uid(),
+  code: "BRO-004",
+  name: "Brownie de Chocolate",
+  category: "Assados",
+  stock: 8,
+  minStock: 10,
+  costPrice: 2.8,
+  priceVarejo: 9.0,
+  priceAtacado: 7.0
+}, {
+  id: uid(),
+  code: "PDM-005",
+  name: "Pão de Mel",
+  category: "Doces",
+  stock: 30,
+  minStock: 12,
+  costPrice: 1.6,
+  priceVarejo: 6.0,
+  priceAtacado: 4.5
+}, {
+  id: uid(),
+  code: "TRU-006",
+  name: "Trufa de Chocolate",
+  category: "Doces",
+  stock: 5,
+  minStock: 15,
+  costPrice: 1.4,
+  priceVarejo: 5.5,
+  priceAtacado: 4.2
+}];
 function loadKey(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
     if (raw === null) return fallback;
     return JSON.parse(raw);
-  } catch (e) { return fallback; }
+  } catch (e) {
+    return fallback;
+  }
 }
 function saveKey(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { console.error("Erro ao salvar", key, e); }
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error("Erro ao salvar", key, e);
+  }
 }
 
 /* ---------------------------- small UI atoms ---------------------------- */
 
-function Badge({ children, tone = "primary" }) {
+function Badge({
+  children,
+  tone = "primary"
+}) {
   const map = {
-    primary: { bg: COLORS.primarySoft, fg: COLORS.primaryDark },
-    secondary: { bg: COLORS.secondarySoft, fg: COLORS.secondary },
-    mint: { bg: COLORS.mintSoft, fg: COLORS.mint },
-    warn: { bg: COLORS.warnSoft, fg: COLORS.warn },
+    primary: {
+      bg: COLORS.primarySoft,
+      fg: COLORS.primaryDark
+    },
+    secondary: {
+      bg: COLORS.secondarySoft,
+      fg: COLORS.secondary
+    },
+    mint: {
+      bg: COLORS.mintSoft,
+      fg: COLORS.mint
+    },
+    warn: {
+      bg: COLORS.warnSoft,
+      fg: COLORS.warn
+    }
   };
   const c = map[tone] || map.primary;
-  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: c.bg, color: c.fg }}>{children}</span>;
+  return /*#__PURE__*/React.createElement("span", {
+    className: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold",
+    style: {
+      backgroundColor: c.bg,
+      color: c.fg
+    }
+  }, children);
 }
-
-function StatCard({ icon, label, value }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ backgroundColor: COLORS.card, border: `1px solid ${COLORS.borderSoft}` }}>
-      <div className="p-2 rounded-lg text-lg" style={{ backgroundColor: COLORS.primarySoft }}>{icon}</div>
-      <div>
-        <div className="text-xs font-medium" style={{ color: COLORS.textMuted }}>{label}</div>
-        <div className="text-lg font-bold" style={{ color: COLORS.text }}>{value}</div>
-      </div>
-    </div>
-  );
+function StatCard({
+  icon,
+  label,
+  value
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 rounded-xl px-4 py-3",
+    style: {
+      backgroundColor: COLORS.card,
+      border: `1px solid ${COLORS.borderSoft}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-2 rounded-lg text-lg",
+    style: {
+      backgroundColor: COLORS.primarySoft
+    }
+  }, icon), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-medium",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    className: "text-lg font-bold",
+    style: {
+      color: COLORS.text
+    }
+  }, value)));
 }
-
-function Field({ label, children }) {
-  return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="font-semibold" style={{ color: COLORS.text }}>{label}</span>
-      {children}
-    </label>
-  );
+function Field({
+  label,
+  children
+}) {
+  return /*#__PURE__*/React.createElement("label", {
+    className: "flex flex-col gap-1 text-sm"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold",
+    style: {
+      color: COLORS.text
+    }
+  }, label), children);
 }
-
-const inputStyle = { border: `1px solid ${COLORS.border}`, backgroundColor: "#FFFDFB", color: COLORS.text };
+const inputStyle = {
+  border: `1px solid ${COLORS.border}`,
+  backgroundColor: "#FFFDFB",
+  color: COLORS.text
+};
 const inputClass = "rounded-lg px-3 py-2 text-sm outline-none transition";
-
-function Modal({ title, onClose, children, wide }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(58,43,51,0.45)" }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className={`w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-2xl p-5`} style={{ backgroundColor: COLORS.card, border: `1px solid ${COLORS.border}`, maxHeight: "90vh", overflowY: "auto" }}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-lg font-bold" style={{ color: COLORS.text }}>{title}</h3>
-          <button onClick={onClose} className="p-1 rounded-full">{ICON.close}</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
+function Modal({
+  title,
+  onClose,
+  children,
+  wide
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 z-50 flex items-center justify-center p-4",
+    style: {
+      backgroundColor: "rgba(58,43,51,0.45)"
+    },
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    className: `w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-2xl p-5`,
+    style: {
+      backgroundColor: COLORS.card,
+      border: `1px solid ${COLORS.border}`,
+      maxHeight: "90vh",
+      overflowY: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-4"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-display text-lg font-bold",
+    style: {
+      color: COLORS.text
+    }
+  }, title), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    className: "p-1 rounded-full"
+  }, ICON.close)), children));
 }
-
-function PrimaryButton({ children, onClick, icon, type = "button", full, disabled }) {
-  return (
-    <button type={type} onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition ${full ? "w-full" : ""} ${disabled ? "opacity-50" : "active:scale-[0.98]"}`}
-      style={{ backgroundColor: COLORS.primary, color: "white" }}>
-      {icon && <span>{icon}</span>}{children}
-    </button>
-  );
+function PrimaryButton({
+  children,
+  onClick,
+  icon,
+  type = "button",
+  full,
+  disabled
+}) {
+  return /*#__PURE__*/React.createElement("button", {
+    type: type,
+    onClick: onClick,
+    disabled: disabled,
+    className: `inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition ${full ? "w-full" : ""} ${disabled ? "opacity-50" : "active:scale-[0.98]"}`,
+    style: {
+      backgroundColor: COLORS.primary,
+      color: "white"
+    }
+  }, icon && /*#__PURE__*/React.createElement("span", null, icon), children);
 }
-
-function GhostButton({ children, onClick, icon, tone }) {
-  return (
-    <button onClick={onClick} className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition"
-      style={{ backgroundColor: tone === "warn" ? COLORS.warnSoft : COLORS.secondarySoft, color: tone === "warn" ? COLORS.warn : COLORS.secondary }}>
-      {icon && <span>{icon}</span>}{children}
-    </button>
-  );
+function GhostButton({
+  children,
+  onClick,
+  icon,
+  tone
+}) {
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onClick,
+    className: "inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition",
+    style: {
+      backgroundColor: tone === "warn" ? COLORS.warnSoft : COLORS.secondarySoft,
+      color: tone === "warn" ? COLORS.warn : COLORS.secondary
+    }
+  }, icon && /*#__PURE__*/React.createElement("span", null, icon), children);
 }
-
-function Toast({ toast }) {
+function Toast({
+  toast
+}) {
   if (!toast) return null;
   const tone = toast.type === "error" ? COLORS.warn : COLORS.mint;
   const bg = toast.type === "error" ? COLORS.warnSoft : COLORS.mintSoft;
-  return (
-    <div className="fixed bottom-5 right-5 z-[100] flex items-center gap-2 rounded-xl px-4 py-3 shadow-lg font-semibold text-sm" style={{ backgroundColor: bg, color: tone, border: `1px solid ${tone}33` }}>
-      <span>{toast.type === "error" ? ICON.warn : ICON.check}</span>{toast.message}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fixed bottom-5 right-5 z-[100] flex items-center gap-2 rounded-xl px-4 py-3 shadow-lg font-semibold text-sm",
+    style: {
+      backgroundColor: bg,
+      color: tone,
+      border: `1px solid ${tone}33`
+    }
+  }, /*#__PURE__*/React.createElement("span", null, toast.type === "error" ? ICON.warn : ICON.check), toast.message);
 }
-
-function EditableNumber({ value, onCommit, step = "1", width = "w-16", color }) {
+function EditableNumber({
+  value,
+  onCommit,
+  step = "1",
+  width = "w-16",
+  color
+}) {
   const [val, setVal] = useState(String(value));
   useEffect(() => setVal(String(value)), [value]);
   const commit = () => {
@@ -177,13 +362,23 @@ function EditableNumber({ value, onCommit, step = "1", width = "w-16", color }) 
     setVal(String(safe));
     if (safe !== value) onCommit(safe);
   };
-  return (
-    <input type="number" step={step} value={val} onChange={(e) => setVal(e.target.value)} onBlur={commit}
-      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-      onClick={(e) => e.stopPropagation()}
-      className={`${width} rounded-md px-2 py-1 text-sm font-semibold text-right outline-none`}
-      style={{ border: `1px solid ${COLORS.borderSoft}`, backgroundColor: "#FFFDFB", color: color || COLORS.text }} />
-  );
+  return /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: step,
+    value: val,
+    onChange: e => setVal(e.target.value),
+    onBlur: commit,
+    onKeyDown: e => {
+      if (e.key === "Enter") e.currentTarget.blur();
+    },
+    onClick: e => e.stopPropagation(),
+    className: `${width} rounded-md px-2 py-1 text-sm font-semibold text-right outline-none`,
+    style: {
+      border: `1px solid ${COLORS.borderSoft}`,
+      backgroundColor: "#FFFDFB",
+      color: color || COLORS.text
+    }
+  });
 }
 
 /* ------------------------------- main app -------------------------------- */
@@ -194,498 +389,1148 @@ function DoceAcasoPDV() {
   const [sales, setSales] = useState([]);
   const [view, setView] = useState("pdv");
   const [toast, setToast] = useState(null);
-
   const [cart, setCart] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [priceTable, setPriceTable] = useState("varejo");
   const [pdvSearch, setPdvSearch] = useState("");
-
   const [productModal, setProductModal] = useState(null);
   const [customerModal, setCustomerModal] = useState(null);
   const [searchProducts, setSearchProducts] = useState("");
   const [searchCustomers, setSearchCustomers] = useState("");
   const [expandedSale, setExpandedSale] = useState(null);
-
   const notify = useCallback((message, type = "success") => {
-    setToast({ message, type });
+    setToast({
+      message,
+      type
+    });
     setTimeout(() => setToast(null), 2600);
   }, []);
-
   useEffect(() => {
     let p = loadKey("doce-acaso-products", null);
     let c = loadKey("doce-acaso-customers", null);
     let s = loadKey("doce-acaso-sales", null);
-    if (p === null) { p = SEED_PRODUCTS; saveKey("doce-acaso-products", p); }
-    if (c === null) { c = []; saveKey("doce-acaso-customers", c); }
-    if (s === null) { s = []; saveKey("doce-acaso-sales", s); }
-    setProducts(p); setCustomers(c); setSales(s);
-
+    if (p === null) {
+      p = SEED_PRODUCTS;
+      saveKey("doce-acaso-products", p);
+    }
+    if (c === null) {
+      c = [];
+      saveKey("doce-acaso-customers", c);
+    }
+    if (s === null) {
+      s = [];
+      saveKey("doce-acaso-sales", s);
+    }
+    setProducts(p);
+    setCustomers(c);
+    setSales(s);
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
   }, []);
-
-  const persistProducts = (next) => { setProducts(next); saveKey("doce-acaso-products", next); };
-  const persistCustomers = (next) => { setCustomers(next); saveKey("doce-acaso-customers", next); };
-  const persistSales = (next) => { setSales(next); saveKey("doce-acaso-sales", next); };
-
-  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) || null;
-
+  const persistProducts = next => {
+    setProducts(next);
+    saveKey("doce-acaso-products", next);
+  };
+  const persistCustomers = next => {
+    setCustomers(next);
+    saveKey("doce-acaso-customers", next);
+  };
+  const persistSales = next => {
+    setSales(next);
+    saveKey("doce-acaso-sales", next);
+  };
+  const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
   useEffect(() => {
     if (selectedCustomer) setPriceTable(selectedCustomer.type === "atacado" ? "atacado" : "varejo");
   }, [selectedCustomerId]); // eslint-disable-line
 
-  const lowStock = useMemo(() => products.filter((p) => p.stock <= p.minStock), [products]);
-
+  const lowStock = useMemo(() => products.filter(p => p.stock <= p.minStock), [products]);
   const todayTotal = useMemo(() => {
     const today = new Date().toDateString();
-    return sales.filter((s) => new Date(s.date).toDateString() === today).reduce((sum, s) => sum + s.total, 0);
+    return sales.filter(s => new Date(s.date).toDateString() === today).reduce((sum, s) => sum + s.total, 0);
   }, [sales]);
-
-  const addToCart = (product) => {
-    if (product.stock <= 0) { notify(`${product.name} está sem estoque`, "error"); return; }
-    setCart((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
+  const addToCart = product => {
+    if (product.stock <= 0) {
+      notify(`${product.name} está sem estoque`, "error");
+      return;
+    }
+    setCart(prev => {
+      const existing = prev.find(i => i.productId === product.id);
       if (existing) {
-        if (existing.qty >= product.stock) { notify("Quantidade em carrinho atingiu o estoque disponível", "error"); return prev; }
-        return prev.map((i) => (i.productId === product.id ? { ...i, qty: i.qty + 1 } : i));
+        if (existing.qty >= product.stock) {
+          notify("Quantidade em carrinho atingiu o estoque disponível", "error");
+          return prev;
+        }
+        return prev.map(i => i.productId === product.id ? {
+          ...i,
+          qty: i.qty + 1
+        } : i);
       }
       const unitPrice = priceTable === "atacado" ? product.priceAtacado : product.priceVarejo;
-      return [...prev, { productId: product.id, name: product.name, unitPrice, qty: 1, stock: product.stock }];
+      return [...prev, {
+        productId: product.id,
+        name: product.name,
+        unitPrice,
+        qty: 1,
+        stock: product.stock
+      }];
     });
   };
-
   const changeQty = (productId, delta) => {
-    setCart((prev) => prev.map((i) => {
+    setCart(prev => prev.map(i => {
       if (i.productId !== productId) return i;
       const newQty = i.qty + delta;
-      if (newQty > i.stock) { notify("Estoque insuficiente para essa quantidade", "error"); return i; }
-      return { ...i, qty: newQty };
-    }).filter((i) => i.qty > 0));
+      if (newQty > i.stock) {
+        notify("Estoque insuficiente para essa quantidade", "error");
+        return i;
+      }
+      return {
+        ...i,
+        qty: newQty
+      };
+    }).filter(i => i.qty > 0));
   };
-
-  const removeFromCart = (productId) => setCart((prev) => prev.filter((i) => i.productId !== productId));
-
+  const removeFromCart = productId => setCart(prev => prev.filter(i => i.productId !== productId));
   useEffect(() => {
-    setCart((prev) => prev.map((i) => {
-      const prod = products.find((p) => p.id === i.productId);
+    setCart(prev => prev.map(i => {
+      const prod = products.find(p => p.id === i.productId);
       if (!prod) return i;
-      return { ...i, unitPrice: priceTable === "atacado" ? prod.priceAtacado : prod.priceVarejo };
+      return {
+        ...i,
+        unitPrice: priceTable === "atacado" ? prod.priceAtacado : prod.priceVarejo
+      };
     }));
   }, [priceTable]); // eslint-disable-line
 
   const cartTotal = cart.reduce((sum, i) => sum + i.unitPrice * i.qty, 0);
-
   const finalizeSale = () => {
-    if (cart.length === 0) { notify("Adicione produtos ao carrinho antes de finalizar", "error"); return; }
+    if (cart.length === 0) {
+      notify("Adicione produtos ao carrinho antes de finalizar", "error");
+      return;
+    }
     for (const item of cart) {
-      const prod = products.find((p) => p.id === item.productId);
-      if (!prod || item.qty > prod.stock) { notify(`Estoque insuficiente para ${item.name}`, "error"); return; }
+      const prod = products.find(p => p.id === item.productId);
+      if (!prod || item.qty > prod.stock) {
+        notify(`Estoque insuficiente para ${item.name}`, "error");
+        return;
+      }
     }
     const sale = {
-      id: uid(), date: new Date().toISOString(),
+      id: uid(),
+      date: new Date().toISOString(),
       customerId: selectedCustomer ? selectedCustomer.id : null,
       customerName: selectedCustomer ? selectedCustomer.name : "Venda Balcão",
       priceTable,
-      items: cart.map((i) => ({ productId: i.productId, name: i.name, qty: i.qty, unitPrice: i.unitPrice, subtotal: i.unitPrice * i.qty })),
-      total: cartTotal,
+      items: cart.map(i => ({
+        productId: i.productId,
+        name: i.name,
+        qty: i.qty,
+        unitPrice: i.unitPrice,
+        subtotal: i.unitPrice * i.qty
+      })),
+      total: cartTotal
     };
-    const nextProducts = products.map((p) => {
-      const item = cart.find((i) => i.productId === p.id);
-      return item ? { ...p, stock: p.stock - item.qty } : p;
+    const nextProducts = products.map(p => {
+      const item = cart.find(i => i.productId === p.id);
+      return item ? {
+        ...p,
+        stock: p.stock - item.qty
+      } : p;
     });
     persistProducts(nextProducts);
     persistSales([sale, ...sales]);
-    setCart([]); setSelectedCustomerId("");
+    setCart([]);
+    setSelectedCustomerId("");
     notify("Venda registrada com sucesso!");
   };
-
-  const saveProduct = (form) => {
-    if (!form.name?.trim() || !form.code?.trim()) { notify("Preencha código e nome do produto", "error"); return; }
-    const parsed = { ...form, stock: Number(form.stock) || 0, minStock: Number(form.minStock) || 0, costPrice: Number(form.costPrice) || 0, priceVarejo: Number(form.priceVarejo) || 0, priceAtacado: Number(form.priceAtacado) || 0 };
-    if (form.id) { persistProducts(products.map((p) => (p.id === form.id ? { ...p, ...parsed } : p))); notify("Produto atualizado"); }
-    else { persistProducts([{ ...parsed, id: uid() }, ...products]); notify("Produto cadastrado"); }
+  const saveProduct = form => {
+    if (!form.name?.trim() || !form.code?.trim()) {
+      notify("Preencha código e nome do produto", "error");
+      return;
+    }
+    const parsed = {
+      ...form,
+      stock: Number(form.stock) || 0,
+      minStock: Number(form.minStock) || 0,
+      costPrice: Number(form.costPrice) || 0,
+      priceVarejo: Number(form.priceVarejo) || 0,
+      priceAtacado: Number(form.priceAtacado) || 0
+    };
+    if (form.id) {
+      persistProducts(products.map(p => p.id === form.id ? {
+        ...p,
+        ...parsed
+      } : p));
+      notify("Produto atualizado");
+    } else {
+      persistProducts([{
+        ...parsed,
+        id: uid()
+      }, ...products]);
+      notify("Produto cadastrado");
+    }
     setProductModal(null);
   };
-
-  const deleteProduct = (id) => { persistProducts(products.filter((p) => p.id !== id)); notify("Produto removido"); };
-  const quickUpdateProduct = (id, patch) => { persistProducts(products.map((p) => (p.id === id ? { ...p, ...patch } : p))); notify("Produto atualizado"); };
-
-  const saveCustomer = (form) => {
-    if (!form.name?.trim()) { notify("Informe o nome do cliente", "error"); return; }
-    if (form.id) { persistCustomers(customers.map((c) => (c.id === form.id ? { ...c, ...form } : c))); notify("Cliente atualizado"); }
-    else { persistCustomers([{ ...form, id: uid() }, ...customers]); notify("Cliente cadastrado"); }
+  const deleteProduct = id => {
+    persistProducts(products.filter(p => p.id !== id));
+    notify("Produto removido");
+  };
+  const quickUpdateProduct = (id, patch) => {
+    persistProducts(products.map(p => p.id === id ? {
+      ...p,
+      ...patch
+    } : p));
+    notify("Produto atualizado");
+  };
+  const saveCustomer = form => {
+    if (!form.name?.trim()) {
+      notify("Informe o nome do cliente", "error");
+      return;
+    }
+    if (form.id) {
+      persistCustomers(customers.map(c => c.id === form.id ? {
+        ...c,
+        ...form
+      } : c));
+      notify("Cliente atualizado");
+    } else {
+      persistCustomers([{
+        ...form,
+        id: uid()
+      }, ...customers]);
+      notify("Cliente cadastrado");
+    }
     setCustomerModal(null);
   };
-  const deleteCustomer = (id) => { persistCustomers(customers.filter((c) => c.id !== id)); notify("Cliente removido"); };
-
+  const deleteCustomer = id => {
+    persistCustomers(customers.filter(c => c.id !== id));
+    notify("Cliente removido");
+  };
   const exportExcel = () => {
-    if (products.length === 0 && customers.length === 0 && sales.length === 0) { notify("Não há dados para exportar ainda", "error"); return; }
+    if (products.length === 0 && customers.length === 0 && sales.length === 0) {
+      notify("Não há dados para exportar ainda", "error");
+      return;
+    }
     const wb = XLSX.utils.book_new();
     const salesRows = [];
-    sales.forEach((s) => s.items.forEach((it) => salesRows.push({
-      Data: new Date(s.date).toLocaleString("pt-BR"), Venda: s.id, Cliente: s.customerName,
-      "Tabela de Preço": s.priceTable === "atacado" ? "Atacado" : "Varejo", Produto: it.name, Quantidade: it.qty,
-      "Preço Unitário (R$)": Number(it.unitPrice.toFixed(2)), "Subtotal (R$)": Number(it.subtotal.toFixed(2)),
+    sales.forEach(s => s.items.forEach(it => salesRows.push({
+      Data: new Date(s.date).toLocaleString("pt-BR"),
+      Venda: s.id,
+      Cliente: s.customerName,
+      "Tabela de Preço": s.priceTable === "atacado" ? "Atacado" : "Varejo",
+      Produto: it.name,
+      Quantidade: it.qty,
+      "Preço Unitário (R$)": Number(it.unitPrice.toFixed(2)),
+      "Subtotal (R$)": Number(it.subtotal.toFixed(2))
     })));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesRows.length ? salesRows : [{ Aviso: "Nenhuma venda registrada" }]), "Vendas");
-
-    const productRows = products.map((p) => ({ Código: p.code, Produto: p.name, Categoria: p.category, "Estoque Atual": p.stock, "Estoque Mínimo": p.minStock, "Preço Custo (R$)": p.costPrice, "Preço Varejo (R$)": p.priceVarejo, "Preço Atacado (R$)": p.priceAtacado }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productRows.length ? productRows : [{ Aviso: "Nenhum produto cadastrado" }]), "Produtos e Estoque");
-
-    const customerRows = customers.map((c) => ({ Nome: c.name, Telefone: c.phone || "", Email: c.email || "", Tipo: c.type === "atacado" ? "Atacado" : "Varejo" }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(customerRows.length ? customerRows : [{ Aviso: "Nenhum cliente cadastrado" }]), "Clientes");
-
-    const priceRows = products.map((p) => ({ Produto: p.name, Categoria: p.category, "Preço Varejo (R$)": p.priceVarejo, "Preço Atacado (R$)": p.priceAtacado }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(priceRows.length ? priceRows : [{ Aviso: "Nenhum preço cadastrado" }]), "Tabela de Preços");
-
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesRows.length ? salesRows : [{
+      Aviso: "Nenhuma venda registrada"
+    }]), "Vendas");
+    const productRows = products.map(p => ({
+      Código: p.code,
+      Produto: p.name,
+      Categoria: p.category,
+      "Estoque Atual": p.stock,
+      "Estoque Mínimo": p.minStock,
+      "Preço Custo (R$)": p.costPrice,
+      "Preço Varejo (R$)": p.priceVarejo,
+      "Preço Atacado (R$)": p.priceAtacado
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productRows.length ? productRows : [{
+      Aviso: "Nenhum produto cadastrado"
+    }]), "Produtos e Estoque");
+    const customerRows = customers.map(c => ({
+      Nome: c.name,
+      Telefone: c.phone || "",
+      Email: c.email || "",
+      Tipo: c.type === "atacado" ? "Atacado" : "Varejo"
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(customerRows.length ? customerRows : [{
+      Aviso: "Nenhum cliente cadastrado"
+    }]), "Clientes");
+    const priceRows = products.map(p => ({
+      Produto: p.name,
+      Categoria: p.category,
+      "Preço Varejo (R$)": p.priceVarejo,
+      "Preço Atacado (R$)": p.priceAtacado
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(priceRows.length ? priceRows : [{
+      Aviso: "Nenhum preço cadastrado"
+    }]), "Tabela de Preços");
     XLSX.writeFile(wb, `doce-acaso-rs-${new Date().toISOString().slice(0, 10)}.xlsx`);
     notify("Planilha exportada!");
   };
-
-  const filteredPdvProducts = products.filter((p) => `${p.name} ${p.code} ${p.category}`.toLowerCase().includes(pdvSearch.toLowerCase()));
-  const filteredProducts = products.filter((p) => `${p.name} ${p.code} ${p.category}`.toLowerCase().includes(searchProducts.toLowerCase()));
-  const filteredCustomers = customers.filter((c) => `${c.name} ${c.phone} ${c.email}`.toLowerCase().includes(searchCustomers.toLowerCase()));
-
-  const NAV = [
-    { key: "pdv", label: "PDV", icon: ICON.cart },
-    { key: "produtos", label: "Produtos", icon: ICON.box },
-    { key: "clientes", label: "Clientes", icon: ICON.users },
-    { key: "precos", label: "Tabela de Preços", icon: ICON.tag },
-    { key: "vendas", label: "Vendas", icon: ICON.sheet },
-  ];
-
-  return (
-    <div className="w-full min-h-screen flex flex-col md:flex-row" style={{ backgroundColor: COLORS.bg }}>
-      <div className="w-full md:w-56 shrink-0 flex md:flex-col gap-1 p-3 md:p-4 overflow-x-auto" style={{ backgroundColor: COLORS.card, borderBottom: `1px solid ${COLORS.borderSoft}`, borderRight: `1px solid ${COLORS.borderSoft}` }}>
-        <div className="hidden md:flex items-center gap-2 mb-6 px-1">
-          <div className="p-2 rounded-xl text-lg" style={{ backgroundColor: COLORS.primarySoft }}>{ICON.cookie}</div>
-          <div>
-            <div className="font-display font-bold leading-tight" style={{ color: COLORS.text }}>Doce Acaso RS</div>
-            <div className="text-[11px]" style={{ color: COLORS.textMuted }}>PDV &amp; Estoque</div>
-          </div>
-        </div>
-        {NAV.map((n) => {
-          const active = view === n.key;
-          return (
-            <button key={n.key} onClick={() => setView(n.key)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold transition text-left shrink-0"
-              style={{ backgroundColor: active ? COLORS.primarySoft : "transparent", color: active ? COLORS.primaryDark : COLORS.textMuted }}>
-              <span>{n.icon}</span><span className="hidden sm:inline">{n.label}</span>
-              {n.key === "produtos" && lowStock.length > 0 && (
-                <span className="ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ backgroundColor: COLORS.warn, color: "white" }}>{lowStock.length}</span>
-              )}
-            </button>
-          );
-        })}
-        <div className="hidden md:block mt-auto pt-4">
-          <StatCard icon={ICON.store} label="Vendas hoje" value={money(todayTotal)} />
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-4 md:p-6 flex-1 overflow-y-auto scrollbar-thin">
-          {view === "pdv" && (
-            <PdvView products={filteredPdvProducts} pdvSearch={pdvSearch} setPdvSearch={setPdvSearch}
-              cart={cart} addToCart={addToCart} changeQty={changeQty} removeFromCart={removeFromCart}
-              customers={customers} selectedCustomerId={selectedCustomerId} setSelectedCustomerId={setSelectedCustomerId}
-              priceTable={priceTable} setPriceTable={setPriceTable} cartTotal={cartTotal} finalizeSale={finalizeSale} />
-          )}
-          {view === "produtos" && (
-            <ProductsView products={filteredProducts} search={searchProducts} setSearch={setSearchProducts}
-              onNew={() => setProductModal("new")} onEdit={(p) => setProductModal(p)} onDelete={deleteProduct} onQuickUpdate={quickUpdateProduct} />
-          )}
-          {view === "clientes" && (
-            <CustomersView customers={filteredCustomers} search={searchCustomers} setSearch={setSearchCustomers}
-              onNew={() => setCustomerModal("new")} onEdit={(c) => setCustomerModal(c)} onDelete={deleteCustomer} />
-          )}
-          {view === "precos" && <PriceTableView products={products} onEdit={(p) => setProductModal(p)} onQuickUpdate={quickUpdateProduct} />}
-          {view === "vendas" && <SalesView sales={sales} expandedSale={expandedSale} setExpandedSale={setExpandedSale} onExport={exportExcel} />}
-        </div>
-      </div>
-
-      {productModal && <ProductModal product={productModal === "new" ? null : productModal} onClose={() => setProductModal(null)} onSave={saveProduct} />}
-      {customerModal && <CustomerModal customer={customerModal === "new" ? null : customerModal} onClose={() => setCustomerModal(null)} onSave={saveCustomer} />}
-      <Toast toast={toast} />
-    </div>
-  );
+  const filteredPdvProducts = products.filter(p => `${p.name} ${p.code} ${p.category}`.toLowerCase().includes(pdvSearch.toLowerCase()));
+  const filteredProducts = products.filter(p => `${p.name} ${p.code} ${p.category}`.toLowerCase().includes(searchProducts.toLowerCase()));
+  const filteredCustomers = customers.filter(c => `${c.name} ${c.phone} ${c.email}`.toLowerCase().includes(searchCustomers.toLowerCase()));
+  const NAV = [{
+    key: "pdv",
+    label: "PDV",
+    icon: ICON.cart
+  }, {
+    key: "produtos",
+    label: "Produtos",
+    icon: ICON.box
+  }, {
+    key: "clientes",
+    label: "Clientes",
+    icon: ICON.users
+  }, {
+    key: "precos",
+    label: "Tabela de Preços",
+    icon: ICON.tag
+  }, {
+    key: "vendas",
+    label: "Vendas",
+    icon: ICON.sheet
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "w-full min-h-screen flex flex-col md:flex-row",
+    style: {
+      backgroundColor: COLORS.bg
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-full md:w-56 shrink-0 flex md:flex-col gap-1 p-3 md:p-4 overflow-x-auto",
+    style: {
+      backgroundColor: COLORS.card,
+      borderBottom: `1px solid ${COLORS.borderSoft}`,
+      borderRight: `1px solid ${COLORS.borderSoft}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "hidden md:flex items-center gap-2 mb-6 px-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-2 rounded-xl text-lg",
+    style: {
+      backgroundColor: COLORS.primarySoft
+    }
+  }, ICON.cookie), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-bold leading-tight",
+    style: {
+      color: COLORS.text
+    }
+  }, "Doce Acaso RS"), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px]",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "PDV & Estoque"))), NAV.map(n => {
+    const active = view === n.key;
+    return /*#__PURE__*/React.createElement("button", {
+      key: n.key,
+      onClick: () => setView(n.key),
+      className: "flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold transition text-left shrink-0",
+      style: {
+        backgroundColor: active ? COLORS.primarySoft : "transparent",
+        color: active ? COLORS.primaryDark : COLORS.textMuted
+      }
+    }, /*#__PURE__*/React.createElement("span", null, n.icon), /*#__PURE__*/React.createElement("span", {
+      className: "hidden sm:inline"
+    }, n.label), n.key === "produtos" && lowStock.length > 0 && /*#__PURE__*/React.createElement("span", {
+      className: "ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5",
+      style: {
+        backgroundColor: COLORS.warn,
+        color: "white"
+      }
+    }, lowStock.length));
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "hidden md:block mt-auto pt-4"
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    icon: ICON.store,
+    label: "Vendas hoje",
+    value: money(todayTotal)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 flex flex-col overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-4 md:p-6 flex-1 overflow-y-auto scrollbar-thin"
+  }, view === "pdv" && /*#__PURE__*/React.createElement(PdvView, {
+    products: filteredPdvProducts,
+    pdvSearch: pdvSearch,
+    setPdvSearch: setPdvSearch,
+    cart: cart,
+    addToCart: addToCart,
+    changeQty: changeQty,
+    removeFromCart: removeFromCart,
+    customers: customers,
+    selectedCustomerId: selectedCustomerId,
+    setSelectedCustomerId: setSelectedCustomerId,
+    priceTable: priceTable,
+    setPriceTable: setPriceTable,
+    cartTotal: cartTotal,
+    finalizeSale: finalizeSale
+  }), view === "produtos" && /*#__PURE__*/React.createElement(ProductsView, {
+    products: filteredProducts,
+    search: searchProducts,
+    setSearch: setSearchProducts,
+    onNew: () => setProductModal("new"),
+    onEdit: p => setProductModal(p),
+    onDelete: deleteProduct,
+    onQuickUpdate: quickUpdateProduct
+  }), view === "clientes" && /*#__PURE__*/React.createElement(CustomersView, {
+    customers: filteredCustomers,
+    search: searchCustomers,
+    setSearch: setSearchCustomers,
+    onNew: () => setCustomerModal("new"),
+    onEdit: c => setCustomerModal(c),
+    onDelete: deleteCustomer
+  }), view === "precos" && /*#__PURE__*/React.createElement(PriceTableView, {
+    products: products,
+    onEdit: p => setProductModal(p),
+    onQuickUpdate: quickUpdateProduct
+  }), view === "vendas" && /*#__PURE__*/React.createElement(SalesView, {
+    sales: sales,
+    expandedSale: expandedSale,
+    setExpandedSale: setExpandedSale,
+    onExport: exportExcel
+  }))), productModal && /*#__PURE__*/React.createElement(ProductModal, {
+    product: productModal === "new" ? null : productModal,
+    onClose: () => setProductModal(null),
+    onSave: saveProduct
+  }), customerModal && /*#__PURE__*/React.createElement(CustomerModal, {
+    customer: customerModal === "new" ? null : customerModal,
+    onClose: () => setCustomerModal(null),
+    onSave: saveCustomer
+  }), /*#__PURE__*/React.createElement(Toast, {
+    toast: toast
+  }));
 }
 
 /* --------------------------------- PDV view --------------------------------- */
 
-function PdvView({ products, pdvSearch, setPdvSearch, cart, addToCart, changeQty, removeFromCart, customers, selectedCustomerId, setSelectedCustomerId, priceTable, setPriceTable, cartTotal, finalizeSale }) {
-  return (
-    <div className="flex flex-col lg:flex-row gap-6">
-      <div className="flex-1 min-w-0">
-        <h2 className="font-display text-xl font-bold mb-4" style={{ color: COLORS.text }}>Ponto de Venda</h2>
-        <div className="relative mb-4">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2">{ICON.search}</span>
-          <input value={pdvSearch} onChange={(e) => setPdvSearch(e.target.value)} placeholder="Buscar produto por nome ou código…" className={`${inputClass} w-full pl-9`} style={inputStyle} />
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto scrollbar-thin pr-1" style={{ maxHeight: "70vh" }}>
-          {products.map((p) => {
-            const price = priceTable === "atacado" ? p.priceAtacado : p.priceVarejo;
-            const out = p.stock <= 0;
-            return (
-              <button key={p.id} onClick={() => addToCart(p)} disabled={out}
-                className={`text-left rounded-xl p-3 flex flex-col gap-1 transition ${out ? "opacity-50" : "hover:shadow-md hover:-translate-y-0.5"}`}
-                style={{ backgroundColor: COLORS.card, border: `1px solid ${COLORS.borderSoft}` }}>
-                <div className="text-[11px] font-semibold" style={{ color: COLORS.textMuted }}>{p.code}</div>
-                <div className="text-sm font-bold leading-snug" style={{ color: COLORS.text }}>{p.name}</div>
-                <div className="text-xs" style={{ color: p.stock <= p.minStock ? COLORS.warn : COLORS.textMuted }}>Estoque: {p.stock}</div>
-                <div className="mt-1 font-display font-bold" style={{ color: COLORS.primary }}>{money(price)}</div>
-              </button>
-            );
-          })}
-          {products.length === 0 && <div className="col-span-full text-sm py-10 text-center" style={{ color: COLORS.textMuted }}>Nenhum produto encontrado.</div>}
-        </div>
-      </div>
-
-      <div className="w-full lg:w-80 shrink-0 flex flex-col">
-        <div className="mb-3 flex gap-2">
-          <button onClick={() => setPriceTable("varejo")} className="flex-1 rounded-lg py-2 text-xs font-bold transition"
-            style={{ backgroundColor: priceTable === "varejo" ? COLORS.primary : COLORS.card, color: priceTable === "varejo" ? "white" : COLORS.textMuted, border: `1px solid ${priceTable === "varejo" ? COLORS.primary : COLORS.borderSoft}` }}>Varejo</button>
-          <button onClick={() => setPriceTable("atacado")} className="flex-1 rounded-lg py-2 text-xs font-bold transition"
-            style={{ backgroundColor: priceTable === "atacado" ? COLORS.secondary : COLORS.card, color: priceTable === "atacado" ? "white" : COLORS.textMuted, border: `1px solid ${priceTable === "atacado" ? COLORS.secondary : COLORS.borderSoft}` }}>Atacado</button>
-        </div>
-        <select value={selectedCustomerId} onChange={(e) => setSelectedCustomerId(e.target.value)} className={`${inputClass} mb-3`} style={inputStyle}>
-          <option value="">Venda Balcão (sem cliente)</option>
-          {customers.map((c) => <option key={c.id} value={c.id}>{c.name} {c.type === "atacado" ? "· Atacado" : ""}</option>)}
-        </select>
-        <div className="rounded-t-xl p-4 flex-1 flex flex-col" style={{ backgroundColor: COLORS.card, border: `1px solid ${COLORS.borderSoft}`, borderBottom: "none" }}>
-          <div className="font-display font-bold text-sm mb-3 tracking-wide" style={{ color: COLORS.text }}>CUPOM DE VENDA</div>
-          <div className="flex flex-col gap-2 overflow-y-auto scrollbar-thin" style={{ maxHeight: "38vh" }}>
-            {cart.length === 0 && <div className="text-xs py-8 text-center" style={{ color: COLORS.textMuted }}>Carrinho vazio. Toque em um produto para adicionar.</div>}
-            {cart.map((i) => (
-              <div key={i.productId} className="pb-2" style={{ borderBottom: `1px dashed ${COLORS.borderSoft}` }}>
-                <div className="flex items-center justify-between text-sm font-semibold" style={{ color: COLORS.text }}>
-                  <span className="truncate pr-2">{i.name}</span>
-                  <button onClick={() => removeFromCart(i.productId)}><span style={{ color: COLORS.warn }}>{ICON.trash}</span></button>
-                </div>
-                <div className="flex items-center justify-between mt-1">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => changeQty(i.productId, -1)} className="w-7 h-7 flex items-center justify-center rounded-md" style={{ backgroundColor: COLORS.primarySoft }}>{ICON.minus}</button>
-                    <span className="text-sm font-mono w-5 text-center">{i.qty}</span>
-                    <button onClick={() => changeQty(i.productId, 1)} className="w-7 h-7 flex items-center justify-center rounded-md" style={{ backgroundColor: COLORS.primarySoft }}>{ICON.plus}</button>
-                  </div>
-                  <span className="text-sm font-mono font-bold" style={{ color: COLORS.text }}>{money(i.unitPrice * i.qty)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="receipt-torn h-4" style={{ backgroundColor: COLORS.card, border: `1px solid ${COLORS.borderSoft}`, borderTop: "none" }} />
-        <div className="mt-3 rounded-xl p-4" style={{ backgroundColor: COLORS.card, border: `1px solid ${COLORS.borderSoft}` }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-semibold text-sm" style={{ color: COLORS.textMuted }}>Total</span>
-            <span className="font-display text-2xl font-bold" style={{ color: COLORS.primary }}>{money(cartTotal)}</span>
-          </div>
-          <PrimaryButton onClick={finalizeSale} icon={ICON.cart} full>Finalizar Venda</PrimaryButton>
-        </div>
-      </div>
-    </div>
-  );
+function PdvView({
+  products,
+  pdvSearch,
+  setPdvSearch,
+  cart,
+  addToCart,
+  changeQty,
+  removeFromCart,
+  customers,
+  selectedCustomerId,
+  setSelectedCustomerId,
+  priceTable,
+  setPriceTable,
+  cartTotal,
+  finalizeSale
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col lg:flex-row gap-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "font-display text-xl font-bold mb-4",
+    style: {
+      color: COLORS.text
+    }
+  }, "Ponto de Venda"), /*#__PURE__*/React.createElement("div", {
+    className: "relative mb-4"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "absolute left-3 top-1/2 -translate-y-1/2"
+  }, ICON.search), /*#__PURE__*/React.createElement("input", {
+    value: pdvSearch,
+    onChange: e => setPdvSearch(e.target.value),
+    placeholder: "Buscar produto por nome ou código…",
+    className: `${inputClass} w-full pl-9`,
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto scrollbar-thin pr-1",
+    style: {
+      maxHeight: "70vh"
+    }
+  }, products.map(p => {
+    const price = priceTable === "atacado" ? p.priceAtacado : p.priceVarejo;
+    const out = p.stock <= 0;
+    return /*#__PURE__*/React.createElement("button", {
+      key: p.id,
+      onClick: () => addToCart(p),
+      disabled: out,
+      className: `text-left rounded-xl p-3 flex flex-col gap-1 transition ${out ? "opacity-50" : "hover:shadow-md hover:-translate-y-0.5"}`,
+      style: {
+        backgroundColor: COLORS.card,
+        border: `1px solid ${COLORS.borderSoft}`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] font-semibold",
+      style: {
+        color: COLORS.textMuted
+      }
+    }, p.code), /*#__PURE__*/React.createElement("div", {
+      className: "text-sm font-bold leading-snug",
+      style: {
+        color: COLORS.text
+      }
+    }, p.name), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs",
+      style: {
+        color: p.stock <= p.minStock ? COLORS.warn : COLORS.textMuted
+      }
+    }, "Estoque: ", p.stock), /*#__PURE__*/React.createElement("div", {
+      className: "mt-1 font-display font-bold",
+      style: {
+        color: COLORS.primary
+      }
+    }, money(price)));
+  }), products.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "col-span-full text-sm py-10 text-center",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "Nenhum produto encontrado."))), /*#__PURE__*/React.createElement("div", {
+    className: "w-full lg:w-80 shrink-0 flex flex-col"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mb-3 flex gap-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPriceTable("varejo"),
+    className: "flex-1 rounded-lg py-2 text-xs font-bold transition",
+    style: {
+      backgroundColor: priceTable === "varejo" ? COLORS.primary : COLORS.card,
+      color: priceTable === "varejo" ? "white" : COLORS.textMuted,
+      border: `1px solid ${priceTable === "varejo" ? COLORS.primary : COLORS.borderSoft}`
+    }
+  }, "Varejo"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPriceTable("atacado"),
+    className: "flex-1 rounded-lg py-2 text-xs font-bold transition",
+    style: {
+      backgroundColor: priceTable === "atacado" ? COLORS.secondary : COLORS.card,
+      color: priceTable === "atacado" ? "white" : COLORS.textMuted,
+      border: `1px solid ${priceTable === "atacado" ? COLORS.secondary : COLORS.borderSoft}`
+    }
+  }, "Atacado")), /*#__PURE__*/React.createElement("select", {
+    value: selectedCustomerId,
+    onChange: e => setSelectedCustomerId(e.target.value),
+    className: `${inputClass} mb-3`,
+    style: inputStyle
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Venda Balcão (sem cliente)"), customers.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c.id,
+    value: c.id
+  }, c.name, " ", c.type === "atacado" ? "· Atacado" : ""))), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-t-xl p-4 flex-1 flex flex-col",
+    style: {
+      backgroundColor: COLORS.card,
+      border: `1px solid ${COLORS.borderSoft}`,
+      borderBottom: "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-bold text-sm mb-3 tracking-wide",
+    style: {
+      color: COLORS.text
+    }
+  }, "CUPOM DE VENDA"), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2 overflow-y-auto scrollbar-thin",
+    style: {
+      maxHeight: "38vh"
+    }
+  }, cart.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "text-xs py-8 text-center",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "Carrinho vazio. Toque em um produto para adicionar."), cart.map(i => /*#__PURE__*/React.createElement("div", {
+    key: i.productId,
+    className: "pb-2",
+    style: {
+      borderBottom: `1px dashed ${COLORS.borderSoft}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between text-sm font-semibold",
+    style: {
+      color: COLORS.text
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "truncate pr-2"
+  }, i.name), /*#__PURE__*/React.createElement("button", {
+    onClick: () => removeFromCart(i.productId)
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: COLORS.warn
+    }
+  }, ICON.trash))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mt-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => changeQty(i.productId, -1),
+    className: "w-7 h-7 flex items-center justify-center rounded-md",
+    style: {
+      backgroundColor: COLORS.primarySoft
+    }
+  }, ICON.minus), /*#__PURE__*/React.createElement("span", {
+    className: "text-sm font-mono w-5 text-center"
+  }, i.qty), /*#__PURE__*/React.createElement("button", {
+    onClick: () => changeQty(i.productId, 1),
+    className: "w-7 h-7 flex items-center justify-center rounded-md",
+    style: {
+      backgroundColor: COLORS.primarySoft
+    }
+  }, ICON.plus)), /*#__PURE__*/React.createElement("span", {
+    className: "text-sm font-mono font-bold",
+    style: {
+      color: COLORS.text
+    }
+  }, money(i.unitPrice * i.qty))))))), /*#__PURE__*/React.createElement("div", {
+    className: "receipt-torn h-4",
+    style: {
+      backgroundColor: COLORS.card,
+      border: `1px solid ${COLORS.borderSoft}`,
+      borderTop: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "mt-3 rounded-xl p-4",
+    style: {
+      backgroundColor: COLORS.card,
+      border: `1px solid ${COLORS.borderSoft}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-3"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold text-sm",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "Total"), /*#__PURE__*/React.createElement("span", {
+    className: "font-display text-2xl font-bold",
+    style: {
+      color: COLORS.primary
+    }
+  }, money(cartTotal))), /*#__PURE__*/React.createElement(PrimaryButton, {
+    onClick: finalizeSale,
+    icon: ICON.cart,
+    full: true
+  }, "Finalizar Venda"))));
 }
 
 /* ------------------------------- Products view ------------------------------- */
 
-function ProductsView({ products, search, setSearch, onNew, onEdit, onDelete, onQuickUpdate }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="font-display text-xl font-bold" style={{ color: COLORS.text }}>Produtos e Estoque</h2>
-        <PrimaryButton onClick={onNew} icon={ICON.plus}>Novo Produto</PrimaryButton>
-      </div>
-      <div className="relative mb-4 max-w-sm">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2">{ICON.search}</span>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar produto…" className={`${inputClass} w-full pl-9`} style={inputStyle} />
-      </div>
-      <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${COLORS.borderSoft}` }}>
-        <table className="w-full text-sm">
-          <thead><tr style={{ backgroundColor: COLORS.secondarySoft }}>
-            {["Código", "Produto", "Categoria", "Estoque", "Custo", "Varejo", "Atacado", ""].map((h) => <th key={h} className="text-left px-4 py-2.5 font-bold whitespace-nowrap" style={{ color: COLORS.text }}>{h}</th>)}
-          </tr></thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} style={{ borderTop: `1px solid ${COLORS.borderSoft}`, backgroundColor: COLORS.card }}>
-                <td className="px-4 py-2.5 font-mono text-xs" style={{ color: COLORS.textMuted }}>{p.code}</td>
-                <td className="px-4 py-2.5 font-semibold whitespace-nowrap" style={{ color: COLORS.text }}>{p.name}</td>
-                <td className="px-4 py-2.5"><Badge tone="secondary">{p.category || "—"}</Badge></td>
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <EditableNumber value={p.stock} step="1" color={p.stock <= p.minStock ? COLORS.warn : COLORS.text} onCommit={(v) => onQuickUpdate(p.id, { stock: v })} />
-                    {p.stock <= p.minStock && <Badge tone="warn">baixo</Badge>}
-                  </div>
-                </td>
-                <td className="px-4 py-2.5" style={{ color: COLORS.textMuted }}>{money(p.costPrice)}</td>
-                <td className="px-4 py-2.5 font-semibold"><EditableNumber value={p.priceVarejo} step="0.01" width="w-20" color={COLORS.primary} onCommit={(v) => onQuickUpdate(p.id, { priceVarejo: v })} /></td>
-                <td className="px-4 py-2.5 font-semibold"><EditableNumber value={p.priceAtacado} step="0.01" width="w-20" color={COLORS.secondary} onCommit={(v) => onQuickUpdate(p.id, { priceAtacado: v })} /></td>
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2 justify-end">
-                    <button onClick={() => onEdit(p)}>{ICON.edit}</button>
-                    <button onClick={() => onDelete(p.id)}><span style={{ color: COLORS.warn }}>{ICON.trash}</span></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {products.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-sm" style={{ color: COLORS.textMuted }}>Nenhum produto cadastrado ainda.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+function ProductsView({
+  products,
+  search,
+  setSearch,
+  onNew,
+  onEdit,
+  onDelete,
+  onQuickUpdate
+}) {
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-4 flex-wrap gap-2"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "font-display text-xl font-bold",
+    style: {
+      color: COLORS.text
+    }
+  }, "Produtos e Estoque"), /*#__PURE__*/React.createElement(PrimaryButton, {
+    onClick: onNew,
+    icon: ICON.plus
+  }, "Novo Produto")), /*#__PURE__*/React.createElement("div", {
+    className: "relative mb-4 max-w-sm"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "absolute left-3 top-1/2 -translate-y-1/2"
+  }, ICON.search), /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Buscar produto…",
+    className: `${inputClass} w-full pl-9`,
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-xl overflow-x-auto",
+    style: {
+      border: `1px solid ${COLORS.borderSoft}`
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      backgroundColor: COLORS.secondarySoft
+    }
+  }, ["Código", "Produto", "Categoria", "Estoque", "Custo", "Varejo", "Atacado", ""].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    className: "text-left px-4 py-2.5 font-bold whitespace-nowrap",
+    style: {
+      color: COLORS.text
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, products.map(p => /*#__PURE__*/React.createElement("tr", {
+    key: p.id,
+    style: {
+      borderTop: `1px solid ${COLORS.borderSoft}`,
+      backgroundColor: COLORS.card
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5 font-mono text-xs",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, p.code), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5 font-semibold whitespace-nowrap",
+    style: {
+      color: COLORS.text
+    }
+  }, p.name), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    tone: "secondary"
+  }, p.category || "—")), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1.5"
+  }, /*#__PURE__*/React.createElement(EditableNumber, {
+    value: p.stock,
+    step: "1",
+    color: p.stock <= p.minStock ? COLORS.warn : COLORS.text,
+    onCommit: v => onQuickUpdate(p.id, {
+      stock: v
+    })
+  }), p.stock <= p.minStock && /*#__PURE__*/React.createElement(Badge, {
+    tone: "warn"
+  }, "baixo"))), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, money(p.costPrice)), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5 font-semibold"
+  }, /*#__PURE__*/React.createElement(EditableNumber, {
+    value: p.priceVarejo,
+    step: "0.01",
+    width: "w-20",
+    color: COLORS.primary,
+    onCommit: v => onQuickUpdate(p.id, {
+      priceVarejo: v
+    })
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5 font-semibold"
+  }, /*#__PURE__*/React.createElement(EditableNumber, {
+    value: p.priceAtacado,
+    step: "0.01",
+    width: "w-20",
+    color: COLORS.secondary,
+    onCommit: v => onQuickUpdate(p.id, {
+      priceAtacado: v
+    })
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 justify-end"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => onEdit(p)
+  }, ICON.edit), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onDelete(p.id)
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: COLORS.warn
+    }
+  }, ICON.trash)))))), products.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 8,
+    className: "text-center py-8 text-sm",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "Nenhum produto cadastrado ainda."))))));
 }
-
-function ProductModal({ product, onClose, onSave }) {
-  const [form, setForm] = useState(product || { code: "", name: "", category: "", stock: 0, minStock: 5, costPrice: "", priceVarejo: "", priceAtacado: "" });
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-  return (
-    <Modal title={product ? "Editar Produto" : "Novo Produto"} onClose={onClose}>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Código"><input className={inputClass} style={inputStyle} value={form.code} onChange={set("code")} /></Field>
-        <Field label="Categoria"><input className={inputClass} style={inputStyle} value={form.category} onChange={set("category")} /></Field>
-        <div className="col-span-2"><Field label="Nome do produto"><input className={`${inputClass} w-full`} style={inputStyle} value={form.name} onChange={set("name")} /></Field></div>
-        <Field label="Estoque atual"><input type="number" className={inputClass} style={inputStyle} value={form.stock} onChange={set("stock")} /></Field>
-        <Field label="Estoque mínimo"><input type="number" className={inputClass} style={inputStyle} value={form.minStock} onChange={set("minStock")} /></Field>
-        <Field label="Preço de custo"><input type="number" step="0.01" className={inputClass} style={inputStyle} value={form.costPrice} onChange={set("costPrice")} /></Field>
-        <div />
-        <Field label="Preço varejo"><input type="number" step="0.01" className={inputClass} style={inputStyle} value={form.priceVarejo} onChange={set("priceVarejo")} /></Field>
-        <Field label="Preço atacado"><input type="number" step="0.01" className={inputClass} style={inputStyle} value={form.priceAtacado} onChange={set("priceAtacado")} /></Field>
-      </div>
-      <div className="mt-5"><PrimaryButton full onClick={() => onSave(form)}>Salvar Produto</PrimaryButton></div>
-    </Modal>
-  );
+function ProductModal({
+  product,
+  onClose,
+  onSave
+}) {
+  const [form, setForm] = useState(product || {
+    code: "",
+    name: "",
+    category: "",
+    stock: 0,
+    minStock: 5,
+    costPrice: "",
+    priceVarejo: "",
+    priceAtacado: ""
+  });
+  const set = k => e => setForm({
+    ...form,
+    [k]: e.target.value
+  });
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: product ? "Editar Produto" : "Novo Produto",
+    onClose: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-3"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Código"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: form.code,
+    onChange: set("code")
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Categoria"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: form.category,
+    onChange: set("category")
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "col-span-2"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nome do produto"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: `${inputClass} w-full`,
+    style: inputStyle,
+    value: form.name,
+    onChange: set("name")
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Estoque atual"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    className: inputClass,
+    style: inputStyle,
+    value: form.stock,
+    onChange: set("stock")
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Estoque mínimo"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    className: inputClass,
+    style: inputStyle,
+    value: form.minStock,
+    onChange: set("minStock")
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Preço de custo"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    className: inputClass,
+    style: inputStyle,
+    value: form.costPrice,
+    onChange: set("costPrice")
+  })), /*#__PURE__*/React.createElement("div", null), /*#__PURE__*/React.createElement(Field, {
+    label: "Preço varejo"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    className: inputClass,
+    style: inputStyle,
+    value: form.priceVarejo,
+    onChange: set("priceVarejo")
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Preço atacado"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    className: inputClass,
+    style: inputStyle,
+    value: form.priceAtacado,
+    onChange: set("priceAtacado")
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-5"
+  }, /*#__PURE__*/React.createElement(PrimaryButton, {
+    full: true,
+    onClick: () => onSave(form)
+  }, "Salvar Produto")));
 }
 
 /* ------------------------------- Customers view ------------------------------- */
 
-function CustomersView({ customers, search, setSearch, onNew, onEdit, onDelete }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="font-display text-xl font-bold" style={{ color: COLORS.text }}>Clientes</h2>
-        <PrimaryButton onClick={onNew} icon={ICON.plus}>Novo Cliente</PrimaryButton>
-      </div>
-      <div className="relative mb-4 max-w-sm">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2">{ICON.search}</span>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente…" className={`${inputClass} w-full pl-9`} style={inputStyle} />
-      </div>
-      <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${COLORS.borderSoft}` }}>
-        <table className="w-full text-sm">
-          <thead><tr style={{ backgroundColor: COLORS.secondarySoft }}>
-            {["Nome", "Telefone", "Email", "Tipo", ""].map((h) => <th key={h} className="text-left px-4 py-2.5 font-bold whitespace-nowrap" style={{ color: COLORS.text }}>{h}</th>)}
-          </tr></thead>
-          <tbody>
-            {customers.map((c) => (
-              <tr key={c.id} style={{ borderTop: `1px solid ${COLORS.borderSoft}`, backgroundColor: COLORS.card }}>
-                <td className="px-4 py-2.5 font-semibold whitespace-nowrap" style={{ color: COLORS.text }}>{c.name}</td>
-                <td className="px-4 py-2.5" style={{ color: COLORS.textMuted }}>{c.phone || "—"}</td>
-                <td className="px-4 py-2.5" style={{ color: COLORS.textMuted }}>{c.email || "—"}</td>
-                <td className="px-4 py-2.5"><Badge tone={c.type === "atacado" ? "secondary" : "primary"}>{c.type === "atacado" ? "Atacado" : "Varejo"}</Badge></td>
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2 justify-end">
-                    <button onClick={() => onEdit(c)}>{ICON.edit}</button>
-                    <button onClick={() => onDelete(c.id)}><span style={{ color: COLORS.warn }}>{ICON.trash}</span></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {customers.length === 0 && <tr><td colSpan={5} className="text-center py-8 text-sm" style={{ color: COLORS.textMuted }}>Nenhum cliente cadastrado ainda.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+function CustomersView({
+  customers,
+  search,
+  setSearch,
+  onNew,
+  onEdit,
+  onDelete
+}) {
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-4 flex-wrap gap-2"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "font-display text-xl font-bold",
+    style: {
+      color: COLORS.text
+    }
+  }, "Clientes"), /*#__PURE__*/React.createElement(PrimaryButton, {
+    onClick: onNew,
+    icon: ICON.plus
+  }, "Novo Cliente")), /*#__PURE__*/React.createElement("div", {
+    className: "relative mb-4 max-w-sm"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "absolute left-3 top-1/2 -translate-y-1/2"
+  }, ICON.search), /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Buscar cliente…",
+    className: `${inputClass} w-full pl-9`,
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-xl overflow-x-auto",
+    style: {
+      border: `1px solid ${COLORS.borderSoft}`
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      backgroundColor: COLORS.secondarySoft
+    }
+  }, ["Nome", "Telefone", "Email", "Tipo", ""].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    className: "text-left px-4 py-2.5 font-bold whitespace-nowrap",
+    style: {
+      color: COLORS.text
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, customers.map(c => /*#__PURE__*/React.createElement("tr", {
+    key: c.id,
+    style: {
+      borderTop: `1px solid ${COLORS.borderSoft}`,
+      backgroundColor: COLORS.card
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5 font-semibold whitespace-nowrap",
+    style: {
+      color: COLORS.text
+    }
+  }, c.name), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, c.phone || "—"), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, c.email || "—"), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    tone: c.type === "atacado" ? "secondary" : "primary"
+  }, c.type === "atacado" ? "Atacado" : "Varejo")), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 justify-end"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => onEdit(c)
+  }, ICON.edit), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onDelete(c.id)
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: COLORS.warn
+    }
+  }, ICON.trash)))))), customers.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 5,
+    className: "text-center py-8 text-sm",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "Nenhum cliente cadastrado ainda."))))));
 }
-
-function CustomerModal({ customer, onClose, onSave }) {
-  const [form, setForm] = useState(customer || { name: "", phone: "", email: "", type: "varejo" });
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-  return (
-    <Modal title={customer ? "Editar Cliente" : "Novo Cliente"} onClose={onClose}>
-      <div className="flex flex-col gap-3">
-        <Field label="Nome"><input className={inputClass} style={inputStyle} value={form.name} onChange={set("name")} /></Field>
-        <Field label="Telefone"><input className={inputClass} style={inputStyle} value={form.phone} onChange={set("phone")} /></Field>
-        <Field label="Email"><input className={inputClass} style={inputStyle} value={form.email} onChange={set("email")} /></Field>
-        <Field label="Tipo de cliente">
-          <select className={inputClass} style={inputStyle} value={form.type} onChange={set("type")}>
-            <option value="varejo">Varejo</option><option value="atacado">Atacado</option>
-          </select>
-        </Field>
-      </div>
-      <div className="mt-5"><PrimaryButton full onClick={() => onSave(form)}>Salvar Cliente</PrimaryButton></div>
-    </Modal>
-  );
+function CustomerModal({
+  customer,
+  onClose,
+  onSave
+}) {
+  const [form, setForm] = useState(customer || {
+    name: "",
+    phone: "",
+    email: "",
+    type: "varejo"
+  });
+  const set = k => e => setForm({
+    ...form,
+    [k]: e.target.value
+  });
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: customer ? "Editar Cliente" : "Novo Cliente",
+    onClose: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-3"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nome"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: form.name,
+    onChange: set("name")
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Telefone"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: form.phone,
+    onChange: set("phone")
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Email"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: form.email,
+    onChange: set("email")
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Tipo de cliente"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: form.type,
+    onChange: set("type")
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "varejo"
+  }, "Varejo"), /*#__PURE__*/React.createElement("option", {
+    value: "atacado"
+  }, "Atacado")))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-5"
+  }, /*#__PURE__*/React.createElement(PrimaryButton, {
+    full: true,
+    onClick: () => onSave(form)
+  }, "Salvar Cliente")));
 }
 
 /* ------------------------------- Price table view ------------------------------- */
 
-function PriceTableView({ products, onEdit, onQuickUpdate }) {
-  return (
-    <div>
-      <h2 className="font-display text-xl font-bold mb-2" style={{ color: COLORS.text }}>Tabela de Preços</h2>
-      <p className="text-sm mb-4" style={{ color: COLORS.textMuted }}>Toque em um preço para editá-lo diretamente. Clientes marcados como "Atacado" usam automaticamente o preço de atacado no PDV.</p>
-      <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${COLORS.borderSoft}` }}>
-        <table className="w-full text-sm">
-          <thead><tr style={{ backgroundColor: COLORS.secondarySoft }}>
-            {["Produto", "Categoria", "Preço Varejo", "Preço Atacado", "Diferença", ""].map((h) => <th key={h} className="text-left px-4 py-2.5 font-bold whitespace-nowrap" style={{ color: COLORS.text }}>{h}</th>)}
-          </tr></thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} style={{ borderTop: `1px solid ${COLORS.borderSoft}`, backgroundColor: COLORS.card }}>
-                <td className="px-4 py-2.5 font-semibold whitespace-nowrap" style={{ color: COLORS.text }}>{p.name}</td>
-                <td className="px-4 py-2.5"><Badge tone="secondary">{p.category || "—"}</Badge></td>
-                <td className="px-4 py-2.5 font-bold"><EditableNumber value={p.priceVarejo} step="0.01" width="w-20" color={COLORS.primary} onCommit={(v) => onQuickUpdate(p.id, { priceVarejo: v })} /></td>
-                <td className="px-4 py-2.5 font-bold"><EditableNumber value={p.priceAtacado} step="0.01" width="w-20" color={COLORS.secondary} onCommit={(v) => onQuickUpdate(p.id, { priceAtacado: v })} /></td>
-                <td className="px-4 py-2.5" style={{ color: COLORS.textMuted }}>{money(p.priceVarejo - p.priceAtacado)}</td>
-                <td className="px-4 py-2.5"><button onClick={() => onEdit(p)}>{ICON.edit}</button></td>
-              </tr>
-            ))}
-            {products.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-sm" style={{ color: COLORS.textMuted }}>Cadastre produtos para ver a tabela de preços.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+function PriceTableView({
+  products,
+  onEdit,
+  onQuickUpdate
+}) {
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    className: "font-display text-xl font-bold mb-2",
+    style: {
+      color: COLORS.text
+    }
+  }, "Tabela de Preços"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm mb-4",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "Toque em um preço para editá-lo diretamente. Clientes marcados como \"Atacado\" usam automaticamente o preço de atacado no PDV."), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-xl overflow-x-auto",
+    style: {
+      border: `1px solid ${COLORS.borderSoft}`
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      backgroundColor: COLORS.secondarySoft
+    }
+  }, ["Produto", "Categoria", "Preço Varejo", "Preço Atacado", "Diferença", ""].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    className: "text-left px-4 py-2.5 font-bold whitespace-nowrap",
+    style: {
+      color: COLORS.text
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, products.map(p => /*#__PURE__*/React.createElement("tr", {
+    key: p.id,
+    style: {
+      borderTop: `1px solid ${COLORS.borderSoft}`,
+      backgroundColor: COLORS.card
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5 font-semibold whitespace-nowrap",
+    style: {
+      color: COLORS.text
+    }
+  }, p.name), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    tone: "secondary"
+  }, p.category || "—")), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5 font-bold"
+  }, /*#__PURE__*/React.createElement(EditableNumber, {
+    value: p.priceVarejo,
+    step: "0.01",
+    width: "w-20",
+    color: COLORS.primary,
+    onCommit: v => onQuickUpdate(p.id, {
+      priceVarejo: v
+    })
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5 font-bold"
+  }, /*#__PURE__*/React.createElement(EditableNumber, {
+    value: p.priceAtacado,
+    step: "0.01",
+    width: "w-20",
+    color: COLORS.secondary,
+    onCommit: v => onQuickUpdate(p.id, {
+      priceAtacado: v
+    })
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, money(p.priceVarejo - p.priceAtacado)), /*#__PURE__*/React.createElement("td", {
+    className: "px-4 py-2.5"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => onEdit(p)
+  }, ICON.edit)))), products.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 6,
+    className: "text-center py-8 text-sm",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "Cadastre produtos para ver a tabela de preços."))))));
 }
 
 /* ------------------------------- Sales / export view ------------------------------- */
 
-function SalesView({ sales, expandedSale, setExpandedSale, onExport }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="font-display text-xl font-bold" style={{ color: COLORS.text }}>Vendas</h2>
-        <GhostButton onClick={onExport} icon={ICON.sheet}>Baixar Planilha Excel</GhostButton>
-      </div>
-      <div className="flex flex-col gap-2">
-        {sales.map((s) => (
-          <div key={s.id} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${COLORS.borderSoft}`, backgroundColor: COLORS.card }}>
-            <button onClick={() => setExpandedSale(expandedSale === s.id ? null : s.id)} className="w-full flex items-center justify-between px-4 py-3 text-left">
-              <div>
-                <div className="text-sm font-bold" style={{ color: COLORS.text }}>{s.customerName}</div>
-                <div className="text-xs" style={{ color: COLORS.textMuted }}>{new Date(s.date).toLocaleString("pt-BR")} · {s.items.length} item(ns) · {s.priceTable === "atacado" ? "Atacado" : "Varejo"}</div>
-              </div>
-              <div className="font-display font-bold" style={{ color: COLORS.primary }}>{money(s.total)}</div>
-            </button>
-            {expandedSale === s.id && (
-              <div className="px-4 pb-3 flex flex-col gap-1" style={{ borderTop: `1px dashed ${COLORS.borderSoft}` }}>
-                {s.items.map((it, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-xs pt-2" style={{ color: COLORS.textMuted }}>
-                    <span>{it.qty}x {it.name}</span><span className="font-mono">{money(it.subtotal)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-        {sales.length === 0 && <div className="text-center py-12 text-sm rounded-xl" style={{ color: COLORS.textMuted, border: `1px dashed ${COLORS.borderSoft}` }}>Nenhuma venda registrada ainda. Vendas feitas no PDV aparecem aqui.</div>}
-      </div>
-    </div>
-  );
+function SalesView({
+  sales,
+  expandedSale,
+  setExpandedSale,
+  onExport
+}) {
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-4 flex-wrap gap-2"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "font-display text-xl font-bold",
+    style: {
+      color: COLORS.text
+    }
+  }, "Vendas"), /*#__PURE__*/React.createElement(GhostButton, {
+    onClick: onExport,
+    icon: ICON.sheet
+  }, "Baixar Planilha Excel")), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2"
+  }, sales.map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.id,
+    className: "rounded-xl overflow-hidden",
+    style: {
+      border: `1px solid ${COLORS.borderSoft}`,
+      backgroundColor: COLORS.card
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setExpandedSale(expandedSale === s.id ? null : s.id),
+    className: "w-full flex items-center justify-between px-4 py-3 text-left"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-bold",
+    style: {
+      color: COLORS.text
+    }
+  }, s.customerName), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, new Date(s.date).toLocaleString("pt-BR"), " · ", s.items.length, " item(ns) · ", s.priceTable === "atacado" ? "Atacado" : "Varejo")), /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-bold",
+    style: {
+      color: COLORS.primary
+    }
+  }, money(s.total))), expandedSale === s.id && /*#__PURE__*/React.createElement("div", {
+    className: "px-4 pb-3 flex flex-col gap-1",
+    style: {
+      borderTop: `1px dashed ${COLORS.borderSoft}`
+    }
+  }, s.items.map((it, idx) => /*#__PURE__*/React.createElement("div", {
+    key: idx,
+    className: "flex items-center justify-between text-xs pt-2",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, /*#__PURE__*/React.createElement("span", null, it.qty, "x ", it.name), /*#__PURE__*/React.createElement("span", {
+    className: "font-mono"
+  }, money(it.subtotal))))))), sales.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "text-center py-12 text-sm rounded-xl",
+    style: {
+      color: COLORS.textMuted,
+      border: `1px dashed ${COLORS.borderSoft}`
+    }
+  }, "Nenhuma venda registrada ainda. Vendas feitas no PDV aparecem aqui.")));
 }
-
-ReactDOM.createRoot(document.getElementById("root")).render(<DoceAcasoPDV />);
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(DoceAcasoPDV, null));
 </script>
 </body>
 </html>
