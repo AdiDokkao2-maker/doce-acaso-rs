@@ -168,7 +168,7 @@ const SEED_PRODUCTS = [{
   priceVarejo: 5.5,
   priceAtacado: 4.2
 }];
-function loadKey(key, fallback) {
+function loadCache(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
     if (raw === null) return fallback;
@@ -177,12 +177,70 @@ function loadKey(key, fallback) {
     return fallback;
   }
 }
-function saveKey(key, value) {
+function saveCache(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.error("Erro ao salvar", key, e);
+    console.error("Erro ao salvar cache", key, e);
   }
+}
+
+/* ---------------------------- cloud sync (Google Sheets) ---------------------------- */
+
+function getSyncConfig() {
+  try {
+    return {
+      url: localStorage.getItem("doce-acaso-sync-url") || "",
+      token: localStorage.getItem("doce-acaso-sync-token") || ""
+    };
+  } catch (e) {
+    return {
+      url: "",
+      token: ""
+    };
+  }
+}
+function setSyncConfig(url, token) {
+  try {
+    localStorage.setItem("doce-acaso-sync-url", url.trim());
+    localStorage.setItem("doce-acaso-sync-token", token.trim());
+  } catch (e) {
+    console.error(e);
+  }
+}
+async function fetchCloudAll() {
+  const {
+    url,
+    token
+  } = getSyncConfig();
+  if (!url) throw new Error("no-config");
+  const sep = url.includes("?") ? "&" : "?";
+  const res = await fetch(`${url}${sep}token=${encodeURIComponent(token)}`, {
+    method: "GET"
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+async function pushCloud(payload) {
+  const {
+    url,
+    token
+  } = getSyncConfig();
+  if (!url) throw new Error("no-config");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify({
+      ...payload,
+      token
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
 }
 
 /* ---------------------------- small UI atoms ---------------------------- */
@@ -380,6 +438,46 @@ function EditableNumber({
     }
   });
 }
+function SyncConfigModal({
+  onClose,
+  onSave,
+  current
+}) {
+  const [url, setUrl] = useState(current.url || "");
+  const [token, setToken] = useState(current.token || "");
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "Configurar sincronização (Google Sheets)",
+    onClose: onClose
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-xs mb-3",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, "Cole aqui o link do Web App do Google Apps Script e o código secreto que você definiu no script. Use os mesmos dois valores em todos os aparelhos para compartilhar os mesmos dados."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-3"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Link do Web App (termina em /exec)"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: `${inputClass} w-full`,
+    style: inputStyle,
+    value: url,
+    onChange: e => setUrl(e.target.value),
+    placeholder: "https://script.google.com/macros/s/.../exec"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Código secreto (token)"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: `${inputClass} w-full`,
+    style: inputStyle,
+    value: token,
+    onChange: e => setToken(e.target.value),
+    placeholder: "mesmo valor definido no Apps Script"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-5"
+  }, /*#__PURE__*/React.createElement(PrimaryButton, {
+    full: true,
+    onClick: () => onSave(url, token)
+  }, "Salvar e Sincronizar")));
+}
 
 /* ------------------------------- main app -------------------------------- */
 
@@ -398,6 +496,9 @@ function DoceAcasoPDV() {
   const [searchProducts, setSearchProducts] = useState("");
   const [searchCustomers, setSearchCustomers] = useState("");
   const [expandedSale, setExpandedSale] = useState(null);
+  const [syncStatus, setSyncStatus] = useState("idle"); // idle | syncing | ok | error | unconfigured
+  const [lastSync, setLastSync] = useState(null);
+  const [syncModal, setSyncModal] = useState(false);
   const notify = useCallback((message, type = "success") => {
     setToast({
       message,
@@ -405,40 +506,118 @@ function DoceAcasoPDV() {
     });
     setTimeout(() => setToast(null), 2600);
   }, []);
+  const loadAll = useCallback(async (opts = {}) => {
+    let p = loadCache("doce-acaso-products", null);
+    let c = loadCache("doce-acaso-customers", null);
+    let s = loadCache("doce-acaso-sales", null);
+    if (p === null) p = SEED_PRODUCTS;
+    if (c === null) c = [];
+    if (s === null) s = [];
+    if (!opts.silent) {
+      setProducts(p);
+      setCustomers(c);
+      setSales(s);
+    }
+    const {
+      url
+    } = getSyncConfig();
+    if (!url) {
+      setSyncStatus("unconfigured");
+      if (!opts.silent) setSyncModal(true);
+      return;
+    }
+    setSyncStatus("syncing");
+    try {
+      const cloud = await fetchCloudAll();
+      const isBrandNew = (!cloud.products || cloud.products.length === 0) && (!cloud.customers || cloud.customers.length === 0) && (!cloud.sales || cloud.sales.length === 0);
+      const finalProducts = isBrandNew ? p : cloud.products || [];
+      const finalCustomers = isBrandNew ? c : cloud.customers || [];
+      const finalSales = isBrandNew ? s : cloud.sales || [];
+      setProducts(finalProducts);
+      setCustomers(finalCustomers);
+      setSales(finalSales);
+      saveCache("doce-acaso-products", finalProducts);
+      saveCache("doce-acaso-customers", finalCustomers);
+      saveCache("doce-acaso-sales", finalSales);
+      if (isBrandNew) {
+        await pushCloud({
+          products: finalProducts,
+          customers: finalCustomers,
+          sales: finalSales
+        });
+      }
+      setSyncStatus("ok");
+      setLastSync(new Date());
+    } catch (e) {
+      setSyncStatus("error");
+      if (!opts.silent) notify("Não foi possível sincronizar com a nuvem agora. Usando dados salvos neste aparelho.", "error");
+    }
+  }, [notify]);
   useEffect(() => {
-    let p = loadKey("doce-acaso-products", null);
-    let c = loadKey("doce-acaso-customers", null);
-    let s = loadKey("doce-acaso-sales", null);
-    if (p === null) {
-      p = SEED_PRODUCTS;
-      saveKey("doce-acaso-products", p);
-    }
-    if (c === null) {
-      c = [];
-      saveKey("doce-acaso-customers", c);
-    }
-    if (s === null) {
-      s = [];
-      saveKey("doce-acaso-sales", s);
-    }
-    setProducts(p);
-    setCustomers(c);
-    setSales(s);
+    loadAll();
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
-  }, []);
-  const persistProducts = next => {
+    const interval = setInterval(() => loadAll({
+      silent: true
+    }), 45000);
+    const onFocus = () => loadAll({
+      silent: true
+    });
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []); // eslint-disable-line
+
+  const persistProducts = async next => {
     setProducts(next);
-    saveKey("doce-acaso-products", next);
+    saveCache("doce-acaso-products", next);
+    try {
+      await pushCloud({
+        products: next
+      });
+      setSyncStatus("ok");
+      setLastSync(new Date());
+    } catch (e) {
+      setSyncStatus("error");
+      notify("Salvo neste aparelho, mas não sincronizou com a nuvem.", "error");
+    }
   };
-  const persistCustomers = next => {
+  const persistCustomers = async next => {
     setCustomers(next);
-    saveKey("doce-acaso-customers", next);
+    saveCache("doce-acaso-customers", next);
+    try {
+      await pushCloud({
+        customers: next
+      });
+      setSyncStatus("ok");
+      setLastSync(new Date());
+    } catch (e) {
+      setSyncStatus("error");
+      notify("Salvo neste aparelho, mas não sincronizou com a nuvem.", "error");
+    }
   };
-  const persistSales = next => {
+  const persistSales = async next => {
     setSales(next);
-    saveKey("doce-acaso-sales", next);
+    saveCache("doce-acaso-sales", next);
+    try {
+      await pushCloud({
+        sales: next
+      });
+      setSyncStatus("ok");
+      setLastSync(new Date());
+    } catch (e) {
+      setSyncStatus("error");
+      notify("Salvo neste aparelho, mas não sincronizou com a nuvem.", "error");
+    }
+  };
+  const saveSyncConfig = (url, token) => {
+    setSyncConfig(url, token);
+    setSyncModal(false);
+    notify("Configuração salva, sincronizando…");
+    loadAll();
   };
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
   useEffect(() => {
@@ -733,13 +912,32 @@ function DoceAcasoPDV() {
         color: "white"
       }
     }, lowStock.length));
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "hidden md:block mt-auto pt-4"
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSyncModal(true),
+    className: "md:hidden flex items-center px-2 shrink-0 text-lg"
+  }, syncStatus === "error" ? "⚠️" : syncStatus === "syncing" ? "🔄" : syncStatus === "unconfigured" ? "⚙️" : "☁️"), /*#__PURE__*/React.createElement("div", {
+    className: "hidden md:flex flex-col gap-2 mt-auto pt-4"
   }, /*#__PURE__*/React.createElement(StatCard, {
     icon: ICON.store,
     label: "Vendas hoje",
     value: money(todayTotal)
-  }))), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSyncModal(true),
+    className: "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-left",
+    style: {
+      backgroundColor: syncStatus === "error" ? COLORS.warnSoft : syncStatus === "syncing" ? COLORS.secondarySoft : COLORS.mintSoft,
+      color: syncStatus === "error" ? COLORS.warn : syncStatus === "syncing" ? COLORS.secondary : COLORS.mint
+    }
+  }, /*#__PURE__*/React.createElement("span", null, syncStatus === "error" ? "⚠️" : syncStatus === "syncing" ? "🔄" : syncStatus === "unconfigured" ? "⚙️" : "☁️"), /*#__PURE__*/React.createElement("span", {
+    className: "flex-1"
+  }, syncStatus === "unconfigured" && "Configurar sincronização", syncStatus === "syncing" && "Sincronizando…", syncStatus === "ok" && `Sincronizado ${lastSync ? lastSync.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }) : ""}`, syncStatus === "error" && "Sem conexão com a nuvem", syncStatus === "idle" && "Sincronizar")))), syncModal && /*#__PURE__*/React.createElement(SyncConfigModal, {
+    current: getSyncConfig(),
+    onClose: () => setSyncModal(false),
+    onSave: saveSyncConfig
+  }), /*#__PURE__*/React.createElement("div", {
     className: "flex-1 flex flex-col overflow-hidden"
   }, /*#__PURE__*/React.createElement("div", {
     className: "p-4 md:p-6 flex-1 overflow-y-auto scrollbar-thin"
