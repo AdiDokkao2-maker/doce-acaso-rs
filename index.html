@@ -479,6 +479,27 @@ function SyncConfigModal({
   }, "Salvar e Sincronizar")));
 }
 
+/* ---------------------------- WhatsApp receipt ---------------------------- */
+
+function normalizePhone(raw) {
+  if (!raw) return "";
+  let digits = String(raw).replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length <= 11) digits = "55" + digits; // assume BR se faltar DDI
+  return digits;
+}
+function buildWhatsappMessage(sale) {
+  const lines = sale.items.map(it => `• ${it.qty}x ${it.name} — ${money(it.subtotal)}`);
+  return [`Olá ${sale.customerName}! Aqui está o resumo da sua compra na *Doce Acaso RS* 🍪`, "", ...lines, "", `*Total: ${money(sale.total)}*`, "", "Obrigado pela preferência! 💗"].join("\n");
+}
+function sendSaleWhatsapp(sale, customer) {
+  const phone = customer ? normalizePhone(customer.phone) : "";
+  if (!phone) return false;
+  const text = encodeURIComponent(buildWhatsappMessage(sale));
+  window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+  return true;
+}
+
 /* ------------------------------- main app -------------------------------- */
 
 function DoceAcasoPDV() {
@@ -721,7 +742,8 @@ function DoceAcasoPDV() {
     persistSales([sale, ...sales]);
     setCart([]);
     setSelectedCustomerId("");
-    notify("Venda registrada com sucesso!");
+    const sent = sendSaleWhatsapp(sale, selectedCustomer);
+    notify(sent ? "Venda registrada! Abrindo WhatsApp do cliente…" : "Venda registrada com sucesso!");
   };
   const saveProduct = form => {
     if (!form.name?.trim() || !form.code?.trim()) {
@@ -1096,7 +1118,7 @@ function PdvView({
   }, "Atacado")), /*#__PURE__*/React.createElement("select", {
     value: selectedCustomerId,
     onChange: e => setSelectedCustomerId(e.target.value),
-    className: `${inputClass} mb-3`,
+    className: `${inputClass} mb-1`,
     style: inputStyle
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
@@ -1104,6 +1126,16 @@ function PdvView({
     key: c.id,
     value: c.id
   }, c.name, " ", c.type === "atacado" ? "· Atacado" : ""))), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] mb-3 flex items-center gap-1",
+    style: {
+      color: COLORS.textMuted
+    }
+  }, (() => {
+    const cust = customers.find(c => c.id === selectedCustomerId);
+    if (!cust) return "Sem cliente selecionado — recibo não será enviado por WhatsApp.";
+    if (cust.phone) return `📱 Recibo será enviado ao WhatsApp de ${cust.name} ao finalizar.`;
+    return `${cust.name} não tem telefone cadastrado — recibo não será enviado.`;
+  })()), /*#__PURE__*/React.createElement("div", {
     className: "rounded-t-xl p-4 flex-1 flex flex-col",
     style: {
       backgroundColor: COLORS.card,
@@ -1543,12 +1575,13 @@ function CustomerModal({
     value: form.name,
     onChange: set("name")
   })), /*#__PURE__*/React.createElement(Field, {
-    label: "Telefone"
+    label: "Telefone (WhatsApp)"
   }, /*#__PURE__*/React.createElement("input", {
     className: inputClass,
     style: inputStyle,
     value: form.phone,
-    onChange: set("phone")
+    onChange: set("phone"),
+    placeholder: "(51) 99999-9999"
   })), /*#__PURE__*/React.createElement(Field, {
     label: "Email"
   }, /*#__PURE__*/React.createElement("input", {
