@@ -489,8 +489,9 @@ function normalizePhone(raw) {
   return digits;
 }
 function buildWhatsappMessage(sale) {
+  const PIX_KEY = "11992907213";
   const lines = sale.items.map(it => `• ${it.qty}x ${it.name} — ${money(it.subtotal)}`);
-  return [`Olá ${sale.customerName}! Aqui está o resumo da sua compra na *Doce Acaso RS* 🍪`, "", ...lines, "", `*Total: ${money(sale.total)}*`, "", "Obrigado pela preferência! 💗"].join("\n");
+  return [`Olá ${sale.customerName}! Aqui está o resumo da sua compra na *Doce Acaso RS* 🍪`, "", ...lines, "", `*Total: ${money(sale.total)}*`, "", `💳 Chave Pix para pagamento: *${PIX_KEY}*`, "", "Obrigado pela preferência! 💗"].join("\n");
 }
 function sendSaleWhatsapp(sale, customer) {
   const phone = customer ? normalizePhone(customer.phone) : "";
