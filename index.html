@@ -61,7 +61,8 @@ const {
   useState,
   useEffect,
   useMemo,
-  useCallback
+  useCallback,
+  useRef
 } = React;
 
 /* ---------------------------------------------------------------
@@ -215,8 +216,9 @@ async function fetchCloudAll() {
   } = getSyncConfig();
   if (!url) throw new Error("no-config");
   const sep = url.includes("?") ? "&" : "?";
-  const res = await fetch(`${url}${sep}token=${encodeURIComponent(token)}`, {
-    method: "GET"
+  const res = await fetch(`${url}${sep}token=${encodeURIComponent(token)}&_=${Date.now()}`, {
+    method: "GET",
+    cache: "no-store"
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -521,6 +523,7 @@ function DoceAcasoPDV() {
   const [syncStatus, setSyncStatus] = useState("idle"); // idle | syncing | ok | error | unconfigured
   const [lastSync, setLastSync] = useState(null);
   const [syncModal, setSyncModal] = useState(false);
+  const lastWriteAt = useRef(0);
   const notify = useCallback((message, type = "success") => {
     setToast({
       message,
@@ -529,6 +532,7 @@ function DoceAcasoPDV() {
     setTimeout(() => setToast(null), 2600);
   }, []);
   const loadAll = useCallback(async (opts = {}) => {
+    if (opts.silent && Date.now() - lastWriteAt.current < 8000) return; // evita sobrescrever edição recente
     let p = loadCache("doce-acaso-products", null);
     let c = loadCache("doce-acaso-customers", null);
     let s = loadCache("doce-acaso-sales", null);
@@ -594,6 +598,7 @@ function DoceAcasoPDV() {
   }, []); // eslint-disable-line
 
   const persistProducts = async next => {
+    lastWriteAt.current = Date.now();
     setProducts(next);
     saveCache("doce-acaso-products", next);
     try {
@@ -608,6 +613,7 @@ function DoceAcasoPDV() {
     }
   };
   const persistCustomers = async next => {
+    lastWriteAt.current = Date.now();
     setCustomers(next);
     saveCache("doce-acaso-customers", next);
     try {
@@ -622,6 +628,7 @@ function DoceAcasoPDV() {
     }
   };
   const persistSales = async next => {
+    lastWriteAt.current = Date.now();
     setSales(next);
     saveCache("doce-acaso-sales", next);
     try {
