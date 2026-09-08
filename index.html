@@ -69,7 +69,7 @@ const {
    Doce Acaso RS — PDV (Ponto de Venda) — versão PWA (offline, Android)
 ------------------------------------------------------------------ */
 
-const APP_VERSION = "2026.08.17-8-desconto-sheets";
+const APP_VERSION = "2026.08.17-10-cancelar-venda";
 const COLORS = {
   bg: "#FFF8F1",
   card: "#FFFFFF",
@@ -713,7 +713,7 @@ function DoceAcasoPDV() {
   const lowStock = useMemo(() => products.filter(p => p.stock <= p.minStock), [products]);
   const todayTotal = useMemo(() => {
     const today = new Date().toDateString();
-    return sales.filter(s => new Date(s.date).toDateString() === today).reduce((sum, s) => sum + s.total, 0);
+    return sales.filter(s => !s.cancelled && new Date(s.date).toDateString() === today).reduce((sum, s) => sum + s.total, 0);
   }, [sales]);
   const addToCart = product => {
     if (product.stock <= 0) {
@@ -803,7 +803,8 @@ function DoceAcasoPDV() {
       subtotal: cartSubtotal,
       discountType: discountValue > 0 ? discountType : "none",
       discountValue,
-      total: cartTotal
+      total: cartTotal,
+      paid: true
     };
     const nextProducts = products.map(p => {
       const item = cart.find(i => i.productId === p.id);
@@ -903,6 +904,22 @@ function DoceAcasoPDV() {
     persistCustomers(customers.filter(c => c.id !== id));
     notify("Cliente removido");
   };
+  const togglePaid = saleId => {
+    persistSales(sales.map(s => s.id === saleId ? { ...s, paid: !s.paid } : s));
+  };
+  const cancelSale = saleId => {
+    const sale = sales.find(s => s.id === saleId);
+    if (!sale || sale.cancelled) return;
+    const confirmed = window.confirm(`Cancelar a venda de ${sale.customerName} (${money(sale.total)})? O estoque dos itens será devolvido.`);
+    if (!confirmed) return;
+    const restockedProducts = products.map(p => {
+      const item = sale.items.find(i => i.productId === p.id);
+      return item ? { ...p, stock: p.stock + item.qty } : p;
+    });
+    persistProducts(restockedProducts);
+    persistSales(sales.map(s => s.id === saleId ? { ...s, cancelled: true, cancelledAt: new Date().toISOString() } : s));
+    notify("Venda cancelada e estoque devolvido");
+  };
   const exportExcel = (salesOverride) => {
     const salesToExport = salesOverride || sales;
     if (products.length === 0 && customers.length === 0 && salesToExport.length === 0) {
@@ -921,7 +938,9 @@ function DoceAcasoPDV() {
       "Preço Unitário (R$)": Number(it.unitPrice.toFixed(2)),
       "Subtotal Item (R$)": Number(it.subtotal.toFixed(2)),
       "Desconto da Venda (R$)": Number((s.discountValue || 0).toFixed(2)),
-      "Total da Venda (R$)": Number(s.total.toFixed(2))
+      "Total da Venda (R$)": Number(s.total.toFixed(2)),
+      "Status Pagamento": s.paid !== false ? "Pago" : "Pendente",
+      "Status Venda": s.cancelled ? "Cancelada" : "Concluída"
     })));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesRows.length ? salesRows : [{
       Aviso: "Nenhuma venda registrada"
@@ -1108,7 +1127,9 @@ function DoceAcasoPDV() {
     sales: sales,
     expandedSale: expandedSale,
     setExpandedSale: setExpandedSale,
-    onExport: exportExcel
+    onExport: exportExcel,
+    onTogglePaid: togglePaid,
+    onCancelSale: cancelSale
   }))), productModal && /*#__PURE__*/React.createElement(ProductModal, {
     product: productModal === "new" ? null : productModal,
     onClose: () => setProductModal(null),
@@ -1913,10 +1934,13 @@ function SalesView({
   sales,
   expandedSale,
   setExpandedSale,
-  onExport
+  onExport,
+  onTogglePaid,
+  onCancelSale
 }) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState("all"); // all | paid | unpaid
 
   const toLocalDateStr = d => {
     const dt = new Date(d);
@@ -1924,15 +1948,21 @@ function SalesView({
     return new Date(dt.getTime() - off * 60000).toISOString().slice(0, 10);
   };
 
+  const isPaid = s => s.paid !== false;
+
   const filtered = sales.filter(s => {
     const day = toLocalDateStr(s.date);
     if (dateFrom && day < dateFrom) return false;
     if (dateTo && day > dateTo) return false;
+    if (paymentFilter === "paid" && !isPaid(s)) return false;
+    if (paymentFilter === "unpaid" && isPaid(s)) return false;
     return true;
   });
 
-  const hasFilter = !!(dateFrom || dateTo);
-  const filteredTotal = filtered.reduce((sum, s) => sum + s.total, 0);
+  const hasFilter = !!(dateFrom || dateTo) || paymentFilter !== "all";
+  const filteredTotal = filtered.filter(s => !s.cancelled).reduce((sum, s) => sum + s.total, 0);
+  const pendingTotal = sales.filter(s => !isPaid(s) && !s.cancelled).reduce((sum, s) => sum + s.total, 0);
+  const pendingCount = sales.filter(s => !isPaid(s) && !s.cancelled).length;
 
   const applyPreset = preset => {
     const now = new Date();
@@ -1946,7 +1976,7 @@ function SalesView({
       const first = new Date(now.getFullYear(), now.getMonth(), 1);
       setDateFrom(toLocalDateStr(first)); setDateTo(toLocalDateStr(now));
     } else {
-      setDateFrom(""); setDateTo("");
+      setDateFrom(""); setDateTo(""); setPaymentFilter("all");
     }
   };
 
@@ -1959,6 +1989,17 @@ function SalesView({
     onClick: () => onExport(hasFilter ? filtered : null),
     icon: ICON.sheet
   }, hasFilter ? "Baixar Filtro (Excel)" : "Baixar Planilha Excel")),
+
+  pendingCount > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between",
+    style: { backgroundColor: COLORS.warnSoft, border: `1px solid ${COLORS.warn}33` }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-semibold",
+    style: { color: COLORS.warn }
+  }, "⏳ ", pendingCount, " venda(s) pendente(s) de pagamento"), /*#__PURE__*/React.createElement("span", {
+    className: "font-display font-bold text-sm",
+    style: { color: COLORS.warn }
+  }, money(pendingTotal))),
 
   /*#__PURE__*/React.createElement("div", {
     className: "rounded-xl p-3 mb-4 flex flex-wrap items-end gap-3",
@@ -1974,12 +2015,22 @@ function SalesView({
       onClick: () => applyPreset(p),
       className: "text-xs font-semibold rounded-lg px-2.5 py-2",
       style: { backgroundColor: COLORS.secondarySoft, color: COLORS.secondary }
-    }, p === "hoje" ? "Hoje" : p === "7dias" ? "7 dias" : "Este mês")),
-    hasFilter && /*#__PURE__*/React.createElement("button", {
+    }, p === "hoje" ? "Hoje" : p === "7dias" ? "7 dias" : "Este mês"))),
+  /*#__PURE__*/React.createElement("div", { className: "flex gap-1.5 flex-wrap" },
+    [["all", "Todas"], ["paid", "Pagas"], ["unpaid", "Pendentes"]].map(([key, label]) => /*#__PURE__*/React.createElement("button", {
+      key: key,
+      onClick: () => setPaymentFilter(key),
+      className: "text-xs font-semibold rounded-lg px-2.5 py-2",
+      style: {
+        backgroundColor: paymentFilter === key ? COLORS.primary : COLORS.primarySoft,
+        color: paymentFilter === key ? "white" : COLORS.primaryDark
+      }
+    }, label))),
+  hasFilter && /*#__PURE__*/React.createElement("button", {
       onClick: () => applyPreset("tudo"),
       className: "text-xs font-semibold rounded-lg px-2.5 py-2",
       style: { backgroundColor: COLORS.warnSoft, color: COLORS.warn }
-    }, "Limpar filtro")),
+    }, "Limpar filtro"),
   hasFilter && /*#__PURE__*/React.createElement("div", { className: "ml-auto text-right" },
     /*#__PURE__*/React.createElement("div", { className: "text-[11px]", style: { color: COLORS.textMuted } }, filtered.length, " venda(s) no período"),
     /*#__PURE__*/React.createElement("div", { className: "font-display font-bold", style: { color: COLORS.primary } }, money(filteredTotal)))),
@@ -1990,16 +2041,18 @@ function SalesView({
     key: s.id,
     className: "rounded-xl overflow-hidden",
     style: {
-      border: `1px solid ${COLORS.borderSoft}`,
-      backgroundColor: COLORS.card
+      border: `1px solid ${s.cancelled ? COLORS.warn + "55" : COLORS.borderSoft}`,
+      backgroundColor: COLORS.card,
+      opacity: s.cancelled ? 0.6 : 1
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", {
     onClick: () => setExpandedSale(expandedSale === s.id ? null : s.id),
-    className: "w-full flex items-center justify-between px-4 py-3 text-left"
+    className: "w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "text-sm font-bold",
     style: {
-      color: COLORS.text
+      color: COLORS.text,
+      textDecoration: s.cancelled ? "line-through" : "none"
     }
   }, s.customerName), /*#__PURE__*/React.createElement("div", {
     className: "text-xs",
@@ -2007,16 +2060,43 @@ function SalesView({
       color: COLORS.textMuted
     }
   }, new Date(s.date).toLocaleString("pt-BR"), " · ", s.items.length, " item(ns) · ", s.priceTable === "atacado" ? "Atacado" : "Varejo", s.discountValue > 0 && " · 🏷️ com desconto")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, s.cancelled ? /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] font-bold rounded-full px-2.5 py-1",
+    style: {
+      backgroundColor: COLORS.warnSoft,
+      color: COLORS.warn
+    }
+  }, "🚫 Cancelada") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    onClick: e => { e.stopPropagation(); onTogglePaid(s.id); },
+    className: "text-[11px] font-bold rounded-full px-2.5 py-1",
+    style: {
+      backgroundColor: isPaid(s) ? COLORS.mintSoft : COLORS.warnSoft,
+      color: isPaid(s) ? COLORS.mint : COLORS.warn
+    }
+  }, isPaid(s) ? "✅ Pago" : "⏳ Pendente"), /*#__PURE__*/React.createElement("button", {
+    onClick: e => { e.stopPropagation(); onCancelSale(s.id); },
+    title: "Cancelar venda",
+    className: "text-[11px] rounded-full px-2 py-1",
+    style: {
+      backgroundColor: "transparent",
+      color: COLORS.textMuted
+    }
+  }, "✕")), /*#__PURE__*/React.createElement("div", {
     className: "font-display font-bold",
     style: {
-      color: COLORS.primary
+      color: s.cancelled ? COLORS.textMuted : COLORS.primary,
+      textDecoration: s.cancelled ? "line-through" : "none"
     }
-  }, money(s.total))), expandedSale === s.id && /*#__PURE__*/React.createElement("div", {
+  }, money(s.total)))), expandedSale === s.id && /*#__PURE__*/React.createElement("div", {
     className: "px-4 pb-3 flex flex-col gap-1",
     style: {
       borderTop: `1px dashed ${COLORS.borderSoft}`
     }
-  }, s.items.map((it, idx) => /*#__PURE__*/React.createElement("div", {
+  }, s.cancelled && /*#__PURE__*/React.createElement("div", {
+    className: "text-xs pt-2 font-semibold",
+    style: { color: COLORS.warn }
+  }, "🚫 Cancelada em ", s.cancelledAt ? new Date(s.cancelledAt).toLocaleString("pt-BR") : "", " — estoque devolvido"), s.items.map((it, idx) => /*#__PURE__*/React.createElement("div", {
     key: idx,
     className: "flex items-center justify-between text-xs pt-2",
     style: {
@@ -2039,7 +2119,7 @@ function SalesView({
       color: COLORS.textMuted,
       border: `1px dashed ${COLORS.borderSoft}`
     }
-  }, hasFilter ? "Nenhuma venda nesse período." : "Nenhuma venda registrada ainda. Vendas feitas no PDV aparecem aqui.")));
+  }, hasFilter ? "Nenhuma venda encontrada com esse filtro." : "Nenhuma venda registrada ainda. Vendas feitas no PDV aparecem aqui.")));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(DoceAcasoPDV, null));
 </script>
